@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Statistics · Probability, visually</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="assets/lib.js"></script>
+  <style>
+    .coins { min-height: 30px; line-height: 0; }
+    .coins span { display: inline-block; width: 20px; height: 20px; border-radius: 50%; margin: 2px; text-align: center; line-height: 20px; font-size: 10px; font-weight: 700; color: #fff; }
+    .dart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 560px; margin: 0 auto; }
+    .dart-grid .cell { text-align: center; font-size: .88em; }
+    .dart-grid .cell .cap { color: var(--muted); }
+    .est-table { font-size: .88em; }
+    .est-table td, .est-table th { padding: 5px 8px; font-variant-numeric: tabular-nums; }
+    .chart svg text.ink { fill: var(--ink); }
+  </style>
+</head>
+<body data-page="statistics">
+<main><div class="content">
+
+<h1>📈 Statistics</h1>
+<p class="lede">Probability goes from a known model to data: "if the coin is fair, how many heads?" Statistics goes the other way: "I saw 7 heads in 10 flips, what is the coin?" Two ideas cover most interview questions: <strong>maximum likelihood</strong> (how to pick an estimate) and <strong>bias &amp; variance</strong> (how to judge it).</p>
+
+<h2 id="maximum-likelihood-estimation">Maximum likelihood estimation</h2>
+<p>We observe data $x_1,\dots,x_n$, drawn i.i.d. from a distribution with an unknown parameter $\theta$. <strong>Maximum likelihood</strong> says: pick the $\theta$ under which the data we actually saw would have been <em>most probable</em>.</p>
+$$L(\theta)=\prod_{i=1}^n p(x_i;\theta),\qquad \hat\theta_{\text{MLE}}=\arg\max_\theta L(\theta).$$
+
+<div class="callout intuition">
+  <p>Think of $\theta$ as a dial. For each dial setting, ask "how surprised would I be by this data?" The MLE is the setting that makes the data least surprising. Note that $L(\theta)$ is a function of $\theta$ with the data held fixed; it is <em>not</em> a probability distribution over $\theta$ (it need not integrate to 1).</p>
+</div>
+
+<h3>The log-likelihood trick</h3>
+<p>Products are awkward to differentiate, and multiplying hundreds of small probabilities underflows to 0 on a computer. Since $\log$ is increasing, maximizing $\log L$ gives the same $\hat\theta$, and it turns the product into a sum:</p>
+$$\ell(\theta)=\log L(\theta)=\sum_{i=1}^n\log p(x_i;\theta).$$
+
+<h3>Recipe</h3>
+<ol>
+  <li>Write down $\ell(\theta)=\sum_i \log p(x_i;\theta)$ and simplify.</li>
+  <li>Differentiate, set $\ell'(\theta)=0$, and solve for $\hat\theta$.</li>
+  <li>Check it really is a maximum: $\ell''(\hat\theta)\lt 0$, <em>and</em> compare with the endpoints / boundaries of the allowed parameter range. Sometimes the maximum is on the boundary, where the derivative isn't zero at all (see the uniform example below).</li>
+</ol>
+<div class="callout fix"><p>The original said "check second derivative of endpoints". It should read: check the second derivative (to confirm a max, not a min) <em>and</em> check the endpoints / boundaries separately.</p></div>
+
+<h3>Example: Bernoulli (coin flips)</h3>
+<p>$x_i\in\{0,1\}$ i.i.d. $\Bern(p)$, with PMF $P(X=x;p)=p^x(1-p)^{1-x}$. Let $k=\sum_i x_i$ be the number of 1s.</p>
+$$\ell(p)=\sum_{i=1}^n\log\big[p^{x_i}(1-p)^{1-x_i}\big]=\sum_{i=1}^n\big[x_i\log p+(1-x_i)\log(1-p)\big]=k\log p+(n-k)\log(1-p).$$
+$$\ell'(p)=\frac kp-\frac{n-k}{1-p}=0\quad\Longrightarrow\quad \hat p=\frac kn.$$
+<p>The MLE is just the <strong>sample frequency</strong>, which is what you would have guessed.</p>
+<div class="callout fix"><p>The original wrote $\ell(\lambda)$ and $\ell'(\lambda)$ here. The parameter is $p$, so it is $\ell(p)$. Also, the per-sample term must use $x_i$ (not a bare $x$): $\sum_i x_i\log p+(1-x_i)\log(1-p)$.</p></div>
+<details><summary>Check it's a maximum</summary>
+  <p>$\ell''(p)=-\dfrac{k}{p^2}-\dfrac{n-k}{(1-p)^2}\lt 0$ for all $p\in(0,1)$, so $\ell$ is concave and the critical point is the global max. Edge case: if $k=0$, then $\ell(p)=n\log(1-p)$ is decreasing and there is no interior critical point; the max is at the boundary $\hat p=0$, which still equals $k/n$.</p>
+</details>
+
+<div class="widget" id="w-bern">
+  <div class="widget-title">Bernoulli likelihood, live</div>
+  <div class="widget-desc">Add flips by hand or draw them from a coin with true bias $p_{\text{true}}$. <b>Left:</b> the likelihood $L(p)$ (scaled so its peak is 1). <b>Right:</b> the log-likelihood $\ell(p)$. Both peak at the same place, $k/n$ (orange); the dashed gray line is $p_{\text{true}}$. Notice how the curve gets <em>narrower</em> as $n$ grows: more data, more certainty. The prior slider adds a $\text{Beta}(a,a)$ prior to show the MAP estimate (see below).</div>
+  <div class="controls" id="bm-ctl"></div>
+  <div class="controls" id="bm-ctl2"></div>
+  <div class="coins" id="bm-coins"></div>
+  <div class="twocol"><div class="chart" id="bm-L"></div><div class="chart" id="bm-l"></div></div>
+  <div class="readout" id="bm-read"></div>
+</div>
+
+<h3>Example: Exponential (waiting times)</h3>
+<p>$x_i$ i.i.d. $\Exp(\lambda)$ with density $f(x;\lambda)=\lambda e^{-\lambda x}$.</p>
+$$\ell(\lambda)=\sum_{i=1}^n\log\big(\lambda e^{-\lambda x_i}\big)=\sum_{i=1}^n\big(\log\lambda-\lambda x_i\big)=n\log\lambda-\lambda\sum_i x_i.$$
+$$\ell'(\lambda)=\frac n\lambda-\sum_i x_i=0\quad\Longrightarrow\quad \hat\lambda_{\text{MLE}}=\frac{n}{\sum_i x_i}=\frac1{\bar x}.$$
+<p>The MLE is the <strong>reciprocal of the sample mean</strong>. That makes sense because $\Exp(\lambda)$ has mean $1/\lambda$: if buses arrive every 10 minutes on average, the rate is 0.1 per minute. ($\ell''=-n/\lambda^2\lt 0$, so it's a max.)</p>
+
+<div class="widget" id="w-exp">
+  <div class="widget-title">Exponential MLE: data → log-likelihood</div>
+  <div class="widget-desc"><b>Left:</b> the sample as a rug (one tick per data point), with the true density (dashed) and the fitted density using $\hat\lambda$. <b>Right:</b> $\ell(\lambda)=n\log\lambda-\lambda\sum x_i$ as a function of $\lambda$; its peak is at $1/\bar x$.</div>
+  <div class="controls" id="ex-ctl"></div>
+  <div class="twocol"><div class="chart" id="ex-rug"></div><div class="chart" id="ex-ll"></div></div>
+  <div class="readout" id="ex-read"></div>
+</div>
+
+<h3>Example: Uniform(0, θ), where calculus fails</h3>
+<p>$x_i$ i.i.d. $\Unif(0,\theta)$ with density $1/\theta$ on $[0,\theta]$. If $\theta$ is smaller than any data point, that point would have probability 0, so</p>
+$$L(\theta)=\begin{cases}\dfrac{1}{\theta^n} & \text{if } \theta\ge\max_i x_i\\[4pt] 0&\text{otherwise.}\end{cases}$$
+<p>$1/\theta^n$ is <em>decreasing</em>, so we want $\theta$ as small as allowed: $\hat\theta=\max_i x_i$. Setting the derivative to zero would get you nowhere ($-n\theta^{-n-1}\ne0$); the maximum is at the boundary of the feasible region. This is exactly why the recipe says to check boundaries.</p>
+<p>But the MLE here is <strong>biased</strong>: the max of the sample is always below $\theta$, so it underestimates on average.</p>
+$$\E[\max_i x_i]=\frac{n}{n+1}\,\theta \qquad\Longrightarrow\qquad \frac{n+1}{n}\max_i x_i \text{ is unbiased.}$$
+<details><summary>Proof of $\E[\max]=\frac{n}{n+1}\theta$</summary>
+  <p>$P(\max\le x)=P(\text{all }x_i\le x)=(x/\theta)^n$, so the density is $n x^{n-1}/\theta^n$ on $[0,\theta]$ and</p>
+  $$\E[\max]=\int_0^\theta x\cdot\frac{n x^{n-1}}{\theta^n}\,dx=\frac{n}{\theta^n}\cdot\frac{\theta^{n+1}}{n+1}=\frac{n}{n+1}\theta.$$
+  <p>Shortcut: $n$ uniform points cut $[0,\theta]$ into $n+1$ gaps with equal expected length $\theta/(n+1)$, and the max sits one gap below $\theta$ (see <a href="distributions.html#uniform">uniform</a>).</p>
+</details>
+
+<div class="widget" id="w-unif">
+  <div class="widget-title">The uniform likelihood is a cliff</div>
+  <div class="widget-desc"><b>Left:</b> the sample on $[0,\theta_{\text{true}}]$; the largest point is highlighted. <b>Right:</b> $L(\theta)$ (scaled to peak at 1) is zero to the left of $\max x_i$ and decays like $1/\theta^n$ to the right, so the peak is the cliff edge (the dashed gray line is the true $\theta$). <b>Repeat 5,000×</b> shows that on average the max falls short of $\theta$ by exactly the predicted amount.</div>
+  <div class="controls" id="un-ctl"></div>
+  <div class="twocol"><div class="chart" id="un-data"></div><div class="chart" id="un-L"></div></div>
+  <div class="readout" id="un-read"></div>
+</div>
+
+<h3>MLE = minimizing cross-entropy loss</h3>
+<p>Neural nets and logistic regression are trained to minimize the <strong>cross-entropy (negative log-likelihood) loss</strong>:</p>
+$$\text{CE}(\theta)=-\frac1N\sum_{i=1}^N\log p_\theta(x_i)\qquad\Longleftrightarrow\qquad \text{maximize }\ \ell(\theta)=\sum_{i=1}^N\log p_\theta(x_i).$$
+<p>Minimizing one is the same as maximizing the other (the $-\frac1N$ is just a negative constant). In words: <strong>models are trained to make the observed data as probable as possible</strong>. For classification the "data" are labels, $p_\theta(y_i\mid x_i)$. Similarly, minimizing squared error is MLE under Gaussian noise, since $-\log\N(y;\hat y,\sigma^2)=\frac{(y-\hat y)^2}{2\sigma^2}+\text{const}$.</p>
+
+<h3>MAP: MLE plus a prior</h3>
+<p>MLE uses only the data. If you have a prior belief $p(\theta)$, Bayes' rule gives the posterior $p(\theta\mid x)\propto p(x\mid\theta)\,p(\theta)$, and the <strong>maximum a posteriori (MAP)</strong> estimate maximizes it:</p>
+$$\hat\theta_{\text{MAP}}=\arg\max_\theta\Big[\underbrace{\ell(\theta)}_{\text{data fit}}+\underbrace{\log p(\theta)}_{\text{prior = regularizer}}\Big].$$
+<ul>
+  <li><strong>Coin with a $\text{Beta}(\alpha,\beta)$ prior:</strong> $\hat p_{\text{MAP}}=\dfrac{k+\alpha-1}{n+\alpha+\beta-2}$. A $\text{Beta}(2,2)$ prior acts like one extra head and one extra tail ("add-one smoothing").</li>
+  <li><strong>Gaussian prior on weights</strong> → $\log p(w)=-\frac{\|w\|^2}{2\tau^2}+\text{const}$ → <strong>L2 regularization</strong> (weight decay). A Laplace prior gives <strong>L1</strong>.</li>
+  <li>A flat prior gives MAP = MLE. As $n\to\infty$, the data term dominates and MAP → MLE.</li>
+</ul>
+
+<div class="quiz" data-answer="2">
+  <div class="q">You flip a coin 10 times and get 0 heads. What are the MLE and the MAP estimate with a $\text{Beta}(2,2)$ prior?</div>
+  <ul><li>MLE $=0.5$, MAP $=0$</li><li>MLE $=0$, MAP $=0$</li><li>MLE $=0$, MAP $=1/12$</li><li>MLE $=1/12$, MAP $=0$</li></ul>
+  <div class="explain">MLE $=k/n=0$, which claims heads is impossible after only 10 flips. MAP $=(0+2-1)/(10+2+2-2)=1/12$: the prior keeps the estimate away from the extreme.</div>
+</div>
+
+<h2 id="bias-variance">Bias &amp; variance</h2>
+<p>An estimator $\hat\theta$ is a function of the data. The data are random, so <strong>$\hat\theta$ is a random variable</strong>: rerun the experiment and you get a different estimate. We judge an estimator by the distribution of its estimates around the true $\theta$.</p>
+
+<div class="facts">
+  <div class="fact"><div class="label">Bias: off-center on average?</div><div class="val">$\operatorname{Bias}(\hat\theta)=\E[\hat\theta]-\theta$</div></div>
+  <div class="fact"><div class="label">Variance: how much it jumps around</div><div class="val">$\Var(\hat\theta)=\E\big[(\hat\theta-\E[\hat\theta])^2\big]$</div></div>
+  <div class="fact"><div class="label">MSE: total error</div><div class="val">$\operatorname{MSE}(\hat\theta)=\E\big[(\hat\theta-\theta)^2\big]$</div></div>
+</div>
+
+<div class="widget" id="w-dart">
+  <div class="widget-title">The dartboard picture</div>
+  <div class="widget-desc">Each dart is the estimate from one fresh dataset; the bullseye is the true $\theta$. <b>Bias</b> is how far the <em>center</em> of the darts is from the bullseye (the cross marks the center). <b>Variance</b> is how spread out the darts are.</div>
+  <div class="controls" id="dt-ctl"></div>
+  <div class="dart-grid" id="dt-grid"></div>
+</div>
+
+<div class="callout key">
+  $$\operatorname{MSE}(\hat\theta)=\operatorname{Bias}(\hat\theta)^2+\Var(\hat\theta)$$
+</div>
+<details><summary>Proof of the decomposition</summary>
+  <p>Add and subtract $\E[\hat\theta]$ inside the square:</p>
+  $$\begin{aligned}
+  \E[(\hat\theta-\theta)^2]&=\E\Big[\big((\hat\theta-\E\hat\theta)+(\E\hat\theta-\theta)\big)^2\Big]\\
+  &=\underbrace{\E[(\hat\theta-\E\hat\theta)^2]}_{\Var(\hat\theta)}+2(\E\hat\theta-\theta)\underbrace{\E[\hat\theta-\E\hat\theta]}_{=0}+\underbrace{(\E\hat\theta-\theta)^2}_{\operatorname{Bias}^2}.
+  \end{aligned}$$
+  <p>The cross term vanishes because $\E\hat\theta-\theta$ is a constant and $\hat\theta$ minus its own mean has mean zero. It's the same identity as $\E[X^2]=\Var(X)+\E[X]^2$, applied to $X=\hat\theta-\theta$.</p>
+</details>
+
+<div class="callout intuition"><p>Unbiased is not automatically best. A slightly biased estimator with much less variance can have <em>smaller</em> total error. That is the bias–variance trade-off behind regularization, shrinkage, and simpler models in ML.</p></div>
+
+<h3>Worked example: three ways to estimate θ in Uniform(0, θ)</h3>
+<table>
+  <tr><th>Estimator</th><th>Bias</th><th>Variance</th><th>MSE</th></tr>
+  <tr><td>$\max_i x_i$ (MLE)</td><td>$-\dfrac{\theta}{n+1}$</td><td>$\dfrac{n\theta^2}{(n+1)^2(n+2)}$</td><td>$\dfrac{2\theta^2}{(n+1)(n+2)}$</td></tr>
+  <tr><td>$\frac{n+1}{n}\max_i x_i$</td><td>$0$</td><td>$\dfrac{\theta^2}{n(n+2)}$</td><td>$\dfrac{\theta^2}{n(n+2)}$</td></tr>
+  <tr><td>$2\bar x$ (method of moments)</td><td>$0$</td><td>$\dfrac{\theta^2}{3n}$</td><td>$\dfrac{\theta^2}{3n}$</td></tr>
+</table>
+<p>Both corrected estimators are unbiased, but the max-based one has variance shrinking like $1/n^2$, versus $1/n$ for $2\bar x$. The max uses the most informative statistic. (Fun fact: the MSE-optimal multiple of the max is $\frac{n+2}{n+1}\max$, which is slightly <em>biased</em>.)</p>
+<details><summary>Where the variances come from</summary>
+  <p>$\E[\max^2]=\int_0^\theta x^2\,\frac{nx^{n-1}}{\theta^n}dx=\frac{n}{n+2}\theta^2$, so $\Var(\max)=\frac{n}{n+2}\theta^2-\frac{n^2}{(n+1)^2}\theta^2=\frac{n\theta^2}{(n+1)^2(n+2)}$. Scaling by $\frac{n+1}{n}$ multiplies the variance by $\frac{(n+1)^2}{n^2}$.</p>
+  <p>For the mean: $\Var(x_i)=\theta^2/12$, so $\Var(2\bar x)=4\cdot\frac{\theta^2}{12n}=\frac{\theta^2}{3n}$.</p>
+</details>
+
+<div class="widget" id="w-est">
+  <div class="widget-title">Estimator shoot-out</div>
+  <div class="widget-desc">We draw 4,000 datasets of size $n$ from $\Unif(0,\theta=1)$ and compute each estimator on each dataset. The histograms show the spread of estimates; the dashed line is the truth $\theta=1$ and the solid line is each estimator's average. The table checks $\text{MSE}=\text{Bias}^2+\text{Var}$.</div>
+  <div class="controls" id="es-ctl"></div>
+  <div class="chart" id="es-h0"></div>
+  <div class="chart" id="es-h1"></div>
+  <div class="chart" id="es-h2"></div>
+  <div id="es-table"></div>
+</div>
+
+<div class="callout tip">
+  <p><strong>The classic: sample variance.</strong> For Gaussian data the MLE of $\sigma^2$ is $\frac1n\sum(x_i-\bar x)^2$, which is biased: its mean is $\frac{n-1}{n}\sigma^2$. Using $\bar x$ instead of the true mean makes the deviations look a little too small. Dividing by $n-1$ (Bessel's correction) fixes the bias. Interviewers love asking "why $n-1$?"</p>
+</div>
+
+<div class="quiz" data-answer="0">
+  <div class="q">With $n=10$ samples from $\Unif(0,\theta)$, which estimator has the smallest MSE?</div>
+  <ul><li>$\frac{11}{10}\max_i x_i$</li><li>$\max_i x_i$</li><li>$2\bar x$</li><li>They're all equal since two are unbiased</li></ul>
+  <div class="explain">MSEs: $\frac{11}{10}\max$: $\theta^2/120$. MLE $\max$: $2\theta^2/132=\theta^2/66$. $2\bar x$: $\theta^2/30$. Unbiasedness says nothing about variance, and $2\bar x$ is far noisier.</div>
+</div>
+
+</div></main>
+<script src="assets/nav.js"></script>
+<script src="assets/statistics.js"></script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Core problem patterns · Probability, visually</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="assets/lib.js"></script>
+  <style>
+    .coins { min-height: 30px; line-height: 1; }
+    .coin { display: inline-block; width: 22px; height: 22px; border-radius: 50%; margin: 2px; text-align: center; line-height: 22px; font-size: 11px; font-weight: 700; color: #fff; }
+    .coin.h { background: var(--c1); } .coin.t { background: var(--c6); }
+    .coin.done { outline: 2px solid var(--c3); outline-offset: 1px; }
+    .ctl input[type=text] { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: .95em; width: 6.5em; text-transform: uppercase; }
+    .eqs { overflow-x: auto; margin: 6px 0; }
+    .perm-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+    .pcard { width: 38px; text-align: center; }
+    .pcard .face { border: 2px solid var(--line); border-radius: 7px; background: var(--bg); padding: 6px 0; font-weight: 700; font-variant-numeric: tabular-nums; transition: background .2s, border-color .2s; }
+    .pcard.fixed .face { border-color: var(--c3); background: var(--tip); color: var(--c3); }
+    .pcard .slot { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    svg.diagram { width: 100%; height: auto; display: block; }
+    svg.diagram text { font-family: inherit; }
+    .twocol > * { min-width: 0; }
+  </style>
+</head>
+<body data-page="problems">
+<main><div class="content">
+
+<h1>🧩 Core problem patterns</h1>
+<p class="lede">Most interview probability questions are one of a handful of patterns in disguise. Three of them do most of the work: <strong>first-step analysis</strong> (when the process can restart), <strong>counting with indicators</strong> (when you need "how many, on average"), and <strong>max/min through the CDF</strong> (when you need an extreme value). Recognize the pattern and the algebra is usually short.</p>
+
+<table>
+  <tr><th>If the question sounds like…</th><th>reach for…</th></tr>
+  <tr><td>"expected number of flips/rolls/steps until …"</td><td><a href="#first-step-analysis">first-step analysis</a>: set up states and condition on the next step</td></tr>
+  <tr><td>"expected number of things that …" (fixed points, empty boxes, runs, pairs)</td><td><a href="#counting-in-expectation">indicators + linearity</a></td></tr>
+  <tr><td>"expected largest / smallest / first to …"</td><td><a href="#max-min-of-n-rvs">CDF of the max, tail of the min</a></td></tr>
+</table>
+
+<!-- ===================================================== FIRST STEP -->
+<h2 id="first-step-analysis">First-step analysis</h2>
+
+<div class="callout intuition">
+  <p>After one step, you are usually in a <em>slightly different copy of the same problem</em>. Write the answer from every possible "where am I now?" state in terms of the answers from the states you could move to next. That gives a system of linear equations, and you solve it.</p>
+</div>
+
+<p><strong>Classic question:</strong> what is the expected number of fair coin flips needed to see two heads in a row (HH)?</p>
+<p>The only thing that matters about the past is how much progress you have toward HH. Define:</p>
+<ul>
+  <li>$E_0$ = expected <em>remaining</em> flips when you have no progress (you just started, or just flipped tails);</li>
+  <li>$E_1$ = expected remaining flips when the last flip was a head (one H in hand).</li>
+</ul>
+<p>Now condition on the next flip. It always costs 1 flip, and then you land in a new state:</p>
+$$E_0=\underbrace{\tfrac12 (1+E_0)}_{\text{tails: no progress}}+\underbrace{\tfrac12(1+E_1)}_{\text{heads: one H}}
+\qquad\qquad
+E_1=\underbrace{\tfrac12(1+E_0)}_{\text{tails: start over}}+\underbrace{\tfrac12\cdot 1}_{\text{heads: done}}$$
+
+<details open><summary>Solving the system</summary>
+  <p>Simplify the second equation: $E_1 = 1+\tfrac12E_0$. Substitute into the first:</p>
+  $$E_0 = 1+\tfrac12E_0+\tfrac12\big(1+\tfrac12E_0\big) = \tfrac32+\tfrac34E_0 \;\Rightarrow\; \tfrac14E_0=\tfrac32\;\Rightarrow\; E_0=6,\quad E_1=4.$$
+  <div class="callout fix"><p>The original notes wrote the "heads again" branch of $E_1$ as $\tfrac12\cdot 0$. The flip that finishes still costs one, so it should be $\tfrac12\cdot 1$ (equivalently $\tfrac12(1+0)$). With $\cdot\,0$ the equations would give $E_0=5$, not 6. The stated answer $E_0=6$ is right.</p></div>
+</details>
+
+<div class="callout key">
+  <p><strong>First-step analysis recipe.</strong></p>
+  <ol>
+    <li>Choose states that capture <em>everything about the past that matters</em> for the future (here: the longest useful prefix of the target).</li>
+    <li>For each state $s$, write $E_s = 1 + \sum_{s'} P(s\to s')\,E_{s'}$, with $E=0$ in the finishing state.</li>
+    <li>Solve the linear system. The answer is $E_{\text{start}}$.</li>
+  </ol>
+  <p>The same move gives probabilities instead of expectations: $p_s=\sum_{s'}P(s\to s')\,p_{s'}$, with $p=1$ in winning states and $p=0$ in losing ones. That is how you solve <a href="puzzles.html">gambler's ruin</a>.</p>
+</div>
+
+<div class="widget" id="w-pattern">
+  <div class="widget-title">Waiting for a coin pattern</div>
+  <div class="widget-desc">Pick a target pattern. The diagram shows its states: each state is "the longest prefix of the pattern I currently have", and each arrow shows where a flip takes you. The equations are generated from the diagram and solved exactly. Press <b>▶ Run</b> to watch the simulator walk the diagram. The current state is highlighted, and the running average converges to $E_\varnothing$.</div>
+  <div class="controls" id="pt-ctl"></div>
+  <div class="controls" id="pt-ctl2"></div>
+  <div class="chart" id="pt-diagram"></div>
+  <div class="coins" id="pt-coins"></div>
+  <div class="eqs" id="pt-eqs"></div>
+  <div class="chart" id="pt-chart"></div>
+  <div class="readout" id="pt-read"></div>
+</div>
+
+<div class="callout warn">
+  <p><strong>Don't always reset to the start on a miss.</strong> In HTH, if you have "H" and flip H, you are still at "H" because the new head is a fresh start of the pattern. Likewise, in HHT, a third H keeps you at "HH". The right state after a miss is the <em>longest suffix of what you have seen that is still a prefix of the target</em>. This is the same idea as the KMP string-matching automaton.</p>
+</div>
+
+<div class="callout tip">
+  <p><strong>Shortcut for fair coins (the "overlap" or ABRACADABRA formula).</strong> For a pattern of length $L$, add $2^k$ for every $k$ such that the first $k$ letters equal the last $k$ letters:</p>
+  $$\E[\text{flips}] = \sum_{k\,:\,\text{prefix}_k=\text{suffix}_k} 2^k.$$
+  <p>HH: $2+4=6$. HT: $4$ (no proper overlap). HHH: $2+4+8=14$. HTH: $2+8=10$. For a biased coin, replace $2^k$ with $1/P(\text{prefix}_k)$. It is a lovely way to <em>check</em> an answer, but in an interview, set up the states first.</p>
+</div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">HT and HH both have probability $\tfrac14$ at any given pair of positions. Why does HT take fewer flips on average (4 vs 6)?</div>
+  <ul>
+    <li>Because tails are more likely than heads after a head.</li>
+    <li>Because when you hold an H and miss, HT leaves you at "H" (the miss was an H), while HH sends you back to the start (the miss was a T).</li>
+    <li>Because HT can overlap with itself and HH cannot.</li>
+    <li>It doesn't. They both take 6 on average.</li>
+  </ul>
+  <div class="explain">From state "H": aiming for HT, a miss means you flipped H, so you are still at "H" and lose no progress. Aiming for HH, a miss means you flipped T, which wipes out your progress. HH <em>does</em> overlap with itself, and self-overlap is exactly what makes a pattern slower (see the overlap formula).</div>
+</div>
+
+<p><strong>The same trick, once more:</strong> the mean of a <a href="distributions.html#geometric">geometric</a> variable. Each trial succeeds with probability $p$. Otherwise you've spent one trial and are back at the start: $E=1+(1-p)E\Rightarrow E=1/p$.</p>
+
+<div class="callout intuition">
+  <p><strong>This generalizes.</strong> The states and arrows above form an <em>absorbing Markov chain</em>, and first-step analysis is just the general equation for its expected hitting times, $h_s = 1+\sum_{s'}P_{ss'}h_{s'}$. See <a href="markov.html">Markov chains</a> for the matrix version, and <a href="puzzles.html">gambler's ruin and random walks</a> for more examples.</p>
+</div>
+
+<!-- ===================================================== COUNTING IN EXPECTATION -->
+<h2 id="counting-in-expectation">Counting in expectation</h2>
+
+<div class="callout intuition">
+  <p>"How many, on average?" is hard to answer by finding the whole distribution of the count, and easy to answer by splitting the count into one yes/no question per item. The expected count is the <em>sum of the probabilities</em>, and this holds even if the items are wildly dependent.</p>
+</div>
+
+<div class="callout key">
+  <ol>
+    <li>Define an indicator for each item: $X_i=\1[\text{item } i \text{ has the property}]$.</li>
+    <li>The count is $N=\sum_i X_i$.</li>
+    <li>Compute $\E[X_i]=P(\text{item } i \text{ has the property})$. Usually symmetry makes this the same for every $i$.</li>
+    <li>Linearity of expectation: $\E[N]=\sum_i P(X_i=1)$.</li>
+  </ol>
+</div>
+
+<h3 id="fixed-points">Fixed points of a permutation</h3>
+<p>Shuffle $n$ cards labeled $1,\dots,n$ into positions $1,\dots,n$. A <strong>fixed point</strong> is a card that lands in its own position. (The story version: $n$ people throw their hats in a pile and each grabs one at random. How many get their own hat?)</p>
+<p>Let $X_i=\1[\text{card } i \text{ lands in position } i]$. By symmetry, position $i$ is equally likely to hold any of the $n$ cards, so $P(X_i=1)=\tfrac1n$. Therefore</p>
+$$\E[\#\text{fixed points}] = \sum_{i=1}^n \frac1n = 1 \qquad\text{for every } n.$$
+
+<div class="widget" id="w-fixed">
+  <div class="widget-title">Shuffle and count fixed points</div>
+  <div class="widget-desc">Each box shows the card that landed in that slot. Green boxes are fixed points (card $i$ in slot $i$). Shuffle many times and the histogram of the number of fixed points approaches the exact distribution (dots), which is almost exactly $\Pois(1)$ (rings) for any $n\gtrsim 5$.</div>
+  <div class="controls" id="fx-ctl"></div>
+  <div class="perm-row" id="fx-cards"></div>
+  <div class="chart" id="fx-chart"></div>
+  <div class="readout" id="fx-read"></div>
+</div>
+
+<details><summary>Bonus: the variance is also 1 (second-moment trick)</summary>
+  <p>The $X_i$ are dependent, but we only need pairwise probabilities. For $i\neq j$, $P(X_i=X_j=1)=\frac1n\cdot\frac1{n-1}$. Using $X_i^2=X_i$:</p>
+  $$\E[N^2]=\sum_i\E[X_i]+\sum_{i\neq j}\E[X_iX_j]=1+n(n-1)\cdot\frac{1}{n(n-1)}=2 \;\Rightarrow\;\Var(N)=2-1^2=1.$$
+  <p>Mean 1 and variance 1 match $\Pois(1)$. The probability of <em>no</em> fixed points tends to $e^{-1}\approx0.368$, which is the <a href="combinatorics.html#derangements">derangement</a> result.</p>
+</details>
+
+<div class="callout warn">
+  <p><strong>Linearity needs no independence. Variance does.</strong> $\E[\sum X_i]=\sum\E[X_i]$ always holds. But $\Var(\sum X_i)=\sum\Var(X_i)$ only holds when the covariances vanish. For dependent indicators, use the second-moment trick above.</p>
+</div>
+
+<h3 id="more-indicator-examples">More indicator examples</h3>
+<details><summary>Expected number of HH occurrences (overlapping) in $n$ fair flips</summary>
+  <p>Let $X_i=\1[\text{flips } i \text{ and } i+1 \text{ are both H}]$ for $i=1,\dots,n-1$. Each has probability $\tfrac14$, so $\E=\frac{n-1}{4}$. The $X_i$ overlap and are dependent, and that doesn't matter.</p>
+</details>
+<details><summary>Expected number of empty bins when throwing $m$ balls into $m$ bins</summary>
+  <p>$X_j=\1[\text{bin } j \text{ empty}]$, and $P(X_j=1)=(1-\tfrac1m)^m\to e^{-1}$. So $\E[\#\text{empty}]=m(1-\tfrac1m)^m\approx 0.37m$. This is the "37% empty" fact from <a href="puzzles.html">balls into bins</a>.</p>
+</details>
+<details><summary>Expected number of distinct values in $k$ rolls of an $n$-sided die</summary>
+  <p>Use an indicator per <em>face</em>: $X_v=\1[\text{face } v \text{ appears at least once}]$, with $P=1-(1-\tfrac1n)^k$. So $\E=n\big(1-(1-\tfrac1n)^k\big)$. Tip: when indicators over the obvious items are awkward, try indicators over the <em>other</em> side (faces instead of rolls).</p>
+</details>
+<details><summary>Expected number of records (left-to-right maxima) in a random permutation</summary>
+  <p>Position $i$ is a record if it is the largest of the first $i$ values. By symmetry this has probability $\tfrac1i$, so $\E=\sum_{i=1}^n\tfrac1i=H_n\approx\ln n$.</p>
+</details>
+
+<div class="quiz" data-answer="2">
+  <div class="q">A random permutation of $1..n$. What is the expected number of $i$ such that $i$ and $i+1$ are adjacent <em>in that order</em> (i.e. $i$ immediately followed by $i+1$)?</div>
+  <ul><li>$\tfrac1n$</li><li>$\tfrac{n-1}{2}$</li><li>$1-\tfrac1n$</li><li>$1$</li></ul>
+  <div class="explain">There are $n-1$ indicators, one per pair $(i,i+1)$. Glue $i,i+1$ into a block: there are $(n-1)!$ such permutations out of $n!$, so each has probability $\tfrac1n$. Total: $\tfrac{n-1}{n}=1-\tfrac1n$.</div>
+</div>
+
+<!-- ===================================================== MAX / MIN -->
+<h2 id="max-min-of-n-rvs">Max/min of $n$ RVs</h2>
+
+<div class="callout intuition">
+  <p>The maximum is at most $x$ <strong>exactly when every</strong> $X_i$ is at most $x$. The minimum is above $x$ <strong>exactly when every</strong> $X_i$ is above $x$. "Every" turns into a product when the $X_i$ are independent. So for the max, work with the CDF, and for the min, work with the tail.</p>
+</div>
+
+<p>Let $X_1,\dots,X_n$ be iid with CDF $F_X$.</p>
+<div class="twocol">
+  <div class="callout key"><p><strong>Max</strong> $M=\max_iX_i$</p>
+  $$F_M(x)=P(M\le x)=P(\text{all }X_i\le x)=[F_X(x)]^n$$</div>
+  <div class="callout key"><p><strong>Min</strong> $m=\min_iX_i$</p>
+  $$P(m>x)=P(\text{every }X_i>x)=[1-F_X(x)]^n$$
+  $$F_m(x)=1-[1-F_X(x)]^n$$</div>
+</div>
+
+<div class="callout fix"><p>The original wrote $P(\text{every }X_i>m)$. It should be $>x$. Also, in the uniform example, $F_m(x)=1-P(m\ge x)$ should strictly be $1-P(m>x)$. The two are equal for continuous variables, but not in general.</p></div>
+
+<p><strong>Two ways to get the expectation:</strong></p>
+<ol>
+  <li><strong>3-step recipe:</strong> CDF → differentiate to get the PDF → integrate $\int x f(x)\,dx$.</li>
+  <li><strong>Tail formula</strong> (non-negative variables only, and usually faster): $\E[X]=\int_0^\infty P(X>x)\,dx$.</li>
+</ol>
+<details><summary>Why the tail formula works</summary>
+  <p>Write $X=\int_0^\infty \1[x\lt X]\,dx$ (the length of $[0,X)$). Take expectations and swap $\E$ and $\int$:</p>
+  $$\E[X]=\int_0^\infty \E\,\1[X>x]\,dx=\int_0^\infty P(X>x)\,dx.$$
+  <p>The discrete version, for $X\in\{0,1,2,\dots\}$, is $\E[X]=\sum_{k\ge 0}P(X>k)$.</p>
+</details>
+
+<h3 id="uniform-max-min">Uniform$[0,1]$ example</h3>
+<p>Result: $\E[\max]=\frac{n}{n+1}$ and $\E[\min]=\frac{1}{n+1}$.</p>
+<div class="twocol">
+<div>
+  <p><strong>Max</strong></p>
+  <ul>
+    <li>CDF: $F_M(x)=\prod_i P(X_i\le x)=x^n$</li>
+    <li>PDF: $f_M(x)=nx^{n-1}$</li>
+    <li>$\E[M]=\int_0^1 x\cdot nx^{n-1}\,dx=\frac{n}{n+1}$</li>
+    <li>Tail: $\int_0^1(1-x^n)\,dx=1-\frac1{n+1}=\frac{n}{n+1}$</li>
+  </ul>
+</div>
+<div>
+  <p><strong>Min</strong></p>
+  <ul>
+    <li>Tail: $P(m>x)=(1-x)^n$</li>
+    <li>CDF: $F_m(x)=1-(1-x)^n$</li>
+    <li>PDF: $f_m(x)=n(1-x)^{n-1}$</li>
+    <li>$\E[m]=\int_0^1(1-x)^n\,dx=\frac{1}{n+1}$</li>
+  </ul>
+</div>
+</div>
+
+<details><summary>Integral for $\E[m]$ via the PDF route</summary>
+  <p>Substitute $u=1-x$: $\int_0^1 x\,n(1-x)^{n-1}dx=n\int_0^1(1-u)u^{n-1}du=n\Big(\frac1n-\frac1{n+1}\Big)=\frac1{n+1}$. The tail formula gets there in one line, which is why it is worth remembering.</p>
+</details>
+
+<div class="callout intuition">
+  <p><strong>The gap picture.</strong> $n$ random points cut $[0,1]$ into $n+1$ gaps. By symmetry (imagine the points on a circle of length 1 with one extra "cut" at 0), all $n+1$ gaps have the same distribution, so each has mean $\frac{1}{n+1}$. The min is the first gap: $\frac1{n+1}$. The max is $1$ minus the last gap: $\frac{n}{n+1}$. More generally, the $k$-th smallest point has mean $\frac{k}{n+1}$.</p>
+</div>
+
+<div class="widget" id="w-unif">
+  <div class="widget-title">$n$ uniform points and their gaps</div>
+  <div class="widget-desc">Drop $n$ random points on $[0,1]$. The alternating blue and green bars are the $n+1$ gaps, the min is orange, and the max is pink. Simulate many draws and compare the averages with the formulas. The bottom chart shows $F_M(x)=x^n$ (solid) and $F_m(x)=1-(1-x)^n$, with the empirical CDF of your simulated maxima as a step line. Faint curves are $x^n$ for $n=1..10$.</div>
+  <div class="controls" id="un-ctl"></div>
+  <div class="chart" id="un-strip"></div>
+  <div class="readout" id="un-read"></div>
+  <div class="chart" id="un-cdf"></div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <div class="q">Three points are dropped uniformly on $[0,1]$. What is the expected distance between the leftmost and rightmost point?</div>
+  <ul><li>$\tfrac14$</li><li>$\tfrac13$</li><li>$\tfrac34$</li><li>$\tfrac12$</li></ul>
+  <div class="explain">$\E[\max]-\E[\min]=\tfrac34-\tfrac14=\tfrac12$. With the gap picture: 4 gaps of mean $\tfrac14$, and the range spans the 2 middle ones. In general the range has mean $\frac{n-1}{n+1}$.</div>
+</div>
+
+<h3 id="exponential-max-min">Exponential example</h3>
+<p>For $X_i\sim\Exp(\lambda)$ iid:</p>
+$$P(m>x)=[P(X_i>x)]^n=e^{-n\lambda x}\;\Rightarrow\; m\sim\Exp(n\lambda),\qquad \E[m]=\int_0^\infty e^{-n\lambda x}\,dx=\frac{1}{n\lambda}.$$
+<p>This holds with different rates too: $\min_i X_i\sim\Exp(\lambda_1+\dots+\lambda_n)$, and $X_j$ is the smallest with probability $\lambda_j/\sum_i\lambda_i$ (see <a href="distributions.html#exponential">exponential</a>).</p>
+
+<div class="widget" id="w-expmin">
+  <div class="widget-title">Race of exponential clocks</div>
+  <div class="widget-desc">Three independent clocks ring at $\Exp(\lambda_1)$, $\Exp(\lambda_2)$, $\Exp(\lambda_3)$ times. The histogram shows the time of the <em>first</em> ring, and the curve is the $\Exp(\lambda_1+\lambda_2+\lambda_3)$ density. The readout shows how often each clock wins against $\lambda_j/\sum\lambda$.</div>
+  <div class="controls" id="em-ctl"></div>
+  <div class="chart" id="em-chart"></div>
+  <div class="readout" id="em-read"></div>
+</div>
+
+<p>The original notes say the max is "a lot more complicated" but grows logarithmically. There is actually a slick derivation using memorylessness:</p>
+<details open><summary>$\E[\max]=\frac1\lambda\left(1+\frac12+\dots+\frac1n\right)=\frac{H_n}{\lambda}\approx\frac{\ln n+0.577}{\lambda}$</summary>
+  <p>Think of $n$ light bulbs. The first failure happens after $\Exp(n\lambda)$ time, with mean $\frac1{n\lambda}$. By memorylessness the $n-1$ survivors are "as good as new", so the next failure takes another $\Exp((n-1)\lambda)$, and so on. The max is the time of the last failure:</p>
+  $$\E[M]=\frac1{n\lambda}+\frac1{(n-1)\lambda}+\dots+\frac1\lambda=\frac{H_n}{\lambda}.$$
+</details>
+
+<h3 id="normal-max">Gaussian example</h3>
+<p>Result: $\E[\max_i X_i]\approx\sqrt{2\ln n}$.</p>
+<p>For $X_i\sim\N(0,1)$ iid, the max grows, but extremely slowly. Even with $n=1000$ samples the expected max is only about $3.24$.</p>
+<details><summary>Back-of-envelope derivation</summary>
+  <p>The max sits around the level $x$ that only about one of the $n$ samples exceeds: $n\,P(X>x)\approx1$. Gaussian tails are roughly $P(X>x)\approx e^{-x^2/2}$ (ignoring polynomial factors), so $n e^{-x^2/2}\approx1\Rightarrow x\approx\sqrt{2\ln n}$. The ignored factors make this an <em>overestimate</em> at practical $n$: for $n=100$ the exact value is about $2.51$, while $\sqrt{2\ln 100}\approx3.03$. The ratio does tend to 1, very slowly, so $\sqrt{2\ln n}$ is the right order of growth and the standard answer to quote.</p>
+</details>
+
+<div class="widget" id="w-extremes">
+  <div class="widget-title">How fast do extremes grow?</div>
+  <div class="widget-desc">Expected max (pink) and min (orange) of $n$ iid samples, with $n$ on a log scale from 1 to 5,000. Solid curves are exact. For the normal, the dashed gray curve is the approximation $\sqrt{2\ln n}$. Dots are simulation averages, which accumulate while running. Note how the uniform saturates, the exponential max grows like $\ln n$, and the normal max grows like $\sqrt{\ln n}$.</div>
+  <div class="controls" id="xt-ctl"></div>
+  <div class="chart" id="xt-chart"></div>
+  <div class="readout" id="xt-read"></div>
+</div>
+
+<div class="callout tip">
+  <p><strong>Interview reflexes for extremes.</strong> For the max, use the CDF to the $n$-th power. For the min, use the tail to the $n$-th power. For non-negative variables, integrate the tail. For uniforms, use the gap picture. For exponentials, use memorylessness. For Gaussians, quote $\sqrt{2\ln n}$ for the order of growth.</p>
+</div>
+
+</div></main>
+<script src="assets/nav.js"></script>
+<script src="assets/problems.js"></script>
+</body>
+</html>

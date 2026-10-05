@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Probability, visually · Interactive interview notes</title>
+  <meta name="description" content="Interactive, visual probability & statistics notes for quant and ML interviews." />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="assets/lib.js"></script>
+  <style>
+    .drill-prompt { font-size: 1.08em; padding: 14px 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; margin: 8px 0 12px; min-height: 3.2em; }
+    .drill-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+    .drill-opts .choice { text-align: left; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; font-size: .92em; cursor: pointer; }
+    .drill-opts .choice:hover { border-color: var(--accent); }
+    .drill-opts .choice.right { border-color: var(--tip-line); background: var(--tip); }
+    .drill-opts .choice.wrong { border-color: var(--warn-line); background: var(--warn); }
+    .drill-fb { margin-top: 10px; font-size: .93em; min-height: 1.5em; }
+    .pattern-table td:first-child { width: 48%; }
+  </style>
+</head>
+<body data-page="index">
+<main><div class="content">
+
+<div class="hero">
+  <h1>Probability, visually</h1>
+  <p class="lede">Interactive notes on probability, statistics and puzzles for quant and ML interviews. Every idea comes with the intuition first, the formula second, and a widget you can play with until it clicks.</p>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<h2 id="how-to-use">How to use these notes</h2>
+<ul>
+  <li><strong>Read the yellow 💡 boxes first.</strong> They give the one-sentence intuition you should be able to say out loud in an interview.</li>
+  <li><strong>Play with every ▶ widget.</strong> Drag the sliders and predict what will happen <em>before</em> you look.</li>
+  <li><strong>Proofs are folded away</strong> under ▸ toggles. Open them on a second pass.</li>
+  <li><strong>🧠 Quick checks</strong> test whether the idea actually stuck.</li>
+  <li>Purple ✏️ boxes mark places where the original notes had a typo or error that has been corrected.</li>
+</ul>
+
+<h2 id="pattern-recognition">Pattern recognition: which tool do I reach for?</h2>
+<p>Most interview problems are solved the moment you recognize the pattern. This is the map:</p>
+
+<table class="pattern-table">
+  <tr><th>If the problem mentions…</th><th>…reach for</th></tr>
+  <tr><td>memoryless, waiting</td><td><a href="distributions.html#geometric">geometric</a>, <a href="distributions.html#exponential">exponential</a></td></tr>
+  <tr><td>trials with success &amp; failure</td><td><a href="distributions.html#bernoulli">Bernoulli</a>, <a href="distributions.html#binomial">binomial</a></td></tr>
+  <tr><td>large sample, average</td><td><a href="expectation.html#central-limit-theorem">CLT</a> → approximately Gaussian</td></tr>
+  <tr><td>bound given only mean / variance</td><td><a href="expectation.html#markov-s-inequality">Markov</a> / <a href="expectation.html#chebyshev-s-inequality">Chebyshev</a> inequalities</td></tr>
+  <tr><td>estimating a parameter from data</td><td><a href="statistics.html#maximum-likelihood-estimation">MLE</a>, MAP, Bayesian update</td></tr>
+  <tr><td>update belief from evidence</td><td><a href="expectation.html#bayes-rule">Bayes' rule</a></td></tr>
+  <tr><td>a (convex/concave) function of a RV</td><td><a href="expectation.html#jensen-s-inequality">Jensen's inequality</a></td></tr>
+  <tr><td>expected count of things</td><td><a href="problems.html#counting-in-expectation">linearity + indicators</a></td></tr>
+  <tr><td>expected hitting time / return probability</td><td><a href="problems.html#first-step-analysis">first-step analysis</a>, solve the recurrence</td></tr>
+  <tr><td>future depends only on the present</td><td><a href="markov.html">Markov chain</a> + first-step analysis</td></tr>
+</table>
+
+<div class="widget" id="w-drill">
+  <div class="widget-title">Pattern drill</div>
+  <div class="widget-desc">Read a real interview-style question and pick the tool you'd reach for first. Aim for 10 in a row.</div>
+  <div class="drill-prompt" id="drill-q"></div>
+  <div class="drill-opts" id="drill-opts"></div>
+  <div class="drill-fb" id="drill-fb"></div>
+  <div class="controls" id="drill-ctl"></div>
+  <div class="readout" id="drill-read"></div>
+</div>
+
+<h2 id="the-five-moves">The five moves that solve most problems</h2>
+<div class="facts">
+  <div class="fact"><div class="label">1 · Linearity</div><div class="val">$\E[\sum X_i]=\sum\E[X_i]$, even when the $X_i$ are dependent.</div></div>
+  <div class="fact"><div class="label">2 · Indicators</div><div class="val">Count = sum of 0/1 variables; $\E[\1_A]=P(A)$.</div></div>
+  <div class="fact"><div class="label">3 · First step</div><div class="val">Condition on the first move, then solve for the unknown.</div></div>
+  <div class="fact"><div class="label">4 · Complement</div><div class="val">$P(\text{at least one})=1-P(\text{none})$.</div></div>
+  <div class="fact"><div class="label">5 · Symmetry</div><div class="val">Equivalent things get equal probability, so divide evenly.</div></div>
+</div>
+
+</div></main>
+<script src="assets/nav.js"></script>
+<script>
+(function () {
+  // chapter cards
+  const desc = {
+    distributions: "Bernoulli, binomial, Poisson, geometric, uniform, exponential, Gaussian, as stories you can see.",
+    expectation: "Expectation, variance, CDFs, Markov/Chebyshev/Jensen, Bayes, CLT and LLN.",
+    problems: "First-step analysis, counting with indicators, max & min of random variables.",
+    combinatorics: "Permutations, combinations, stars & bars, inclusion–exclusion, lattice paths.",
+    markov: "Transition matrices, stationary distributions, hitting & absorption times.",
+    puzzles: "Birthday, gambler's ruin, coupon collector, Monty Hall, secretary and more, all playable.",
+    statistics: "Maximum likelihood, bias, variance and MSE.",
+    calculus: "Taylor series, derivative rules and the handy identities you'll need.",
+  };
+  const cards = document.getElementById("cards");
+  for (const c of CHAPTERS.filter((c) => c.id !== "index"))
+    P.el("a", { class: "card", href: c.href, html: `<div class="emoji">${c.emoji}</div><div class="t">${c.title}</div><div class="d">${desc[c.id] || ""}</div>` }, cards);
+
+  // pattern drill
+  const TOOLS = {
+    geo: "Geometric / exponential (waiting)",
+    bin: "Bernoulli / binomial",
+    clt: "CLT / normal approximation",
+    ineq: "Markov / Chebyshev bound",
+    mle: "MLE / Bayesian estimation",
+    bayes: "Bayes' rule",
+    jensen: "Jensen's inequality",
+    lin: "Linearity + indicators",
+    fsa: "First-step analysis",
+    comb: "Counting / combinatorics",
+  };
+  const LINK = { geo: "distributions.html#geometric", bin: "distributions.html#binomial", clt: "expectation.html#central-limit-theorem", ineq: "expectation.html#inequalities", mle: "statistics.html#maximum-likelihood-estimation", bayes: "expectation.html#bayes-rule", jensen: "expectation.html#jensen-s-inequality", lin: "problems.html#counting-in-expectation", fsa: "problems.html#first-step-analysis", comb: "combinatorics.html" };
+  const Q = [
+    ["You roll a die until you get a 6. What's the expected number of rolls?", "geo", "Waiting for the first success: $\\Geom(1/6)$ has mean 6."],
+    ["A light bulb has been on for 1000 hours. Its lifetime is exponential. What's the chance it lasts 100 more?", "geo", "Memorylessness: the 1000 hours are irrelevant, so the answer is $P(X>100)$."],
+    ["You flip 100 fair coins. Roughly what's the probability of 60 or more heads?", "clt", "The sum of many independent flips is ≈ $\\N(50, 25)$. 60 is 2σ above the mean, so the answer is ≈ 2.3%."],
+    ["The average salary is $50k. Bound the fraction of people earning at least $500k.", "ineq", "Only the mean and non-negativity are known, so use Markov: $\\le 50/500=10\\%$."],
+    ["A test is 99% accurate for a disease with 1% prevalence. You test positive. How likely are you sick?", "bayes", "Bayes: prior 1%, likelihood ratio 99, posterior = 50%."],
+    ["n people throw hats in a pile and each grabs one at random. Expected number who get their own hat?", "lin", "Indicators $X_i=\\1[\\text{person } i \\text{ gets own hat}]$, each with probability $1/n$, so the sum is 1."],
+    ["Expected number of coin flips to see two heads in a row?", "fsa", "States: 'start', 'just saw H'. Write equations conditioning on the next flip and solve: 6."],
+    ["You observe 7 heads in 10 flips. What's your best estimate of the coin's bias?", "mle", "The MLE for a Bernoulli parameter is the sample frequency: 0.7."],
+    ["Is $\\E[1/X]$ bigger or smaller than $1/\\E[X]$ for a positive random variable $X$?", "jensen", "$1/x$ is convex on $x>0$, so by Jensen $\\E[1/X]\\ge 1/\\E[X]$."],
+    ["How many ways can 10 identical candies be split among 4 kids?", "comb", "Stars and bars: $\\binom{13}{3}=286$."],
+    ["A drunk walks ±1 on a line between 0 and 10, starting at 3. What's the chance they hit 10 before 0?", "fsa", "Gambler's ruin. First-step analysis gives a linear recurrence, so the answer is $3/10$."],
+    ["Expected number of distinct birthdays among 30 people?", "lin", "Indicators per day: $365\\,(1-(364/365)^{30})\\approx 28.8$."],
+    ["Probability exactly 3 of 8 independent servers fail, if each fails with p = 0.1?", "bin", "Count of successes in fixed trials: $\\binom83 0.1^3 0.9^5$."],
+    ["Estimate how many samples you need so a sample mean is within 1% of the truth with 95% confidence.", "clt", "Standard error is $\\sigma/\\sqrt n$. Solve $1.96\\,\\sigma/\\sqrt n \\le 0.01\\mu$."],
+    ["Is $\\E[\\log X]$ bigger or smaller than $\\log\\E[X]$?", "jensen", "$\\log$ is concave, so $\\E[\\log X]\\le\\log\\E[X]$."],
+    ["How many 5-card poker hands contain exactly one pair?", "comb", "Choose the rank and suits of the pair, then 3 other distinct ranks with any suits: $13\\binom42\\binom{12}3 4^3$."],
+    ["Given only that the variance is 4, bound $P(|X-\\mu|\\ge 6)$.", "ineq", "Chebyshev: $\\sigma^2/\\epsilon^2=4/36=1/9$."],
+    ["A coin is either fair or two-headed (50/50). You see 3 heads. Probability it's two-headed?", "bayes", "Posterior ∝ prior × likelihood: $\\frac{1\\cdot\\frac12}{1\\cdot\\frac12+\\frac18\\cdot\\frac12}=\\frac89$."],
+  ];
+  let order = [], idx = 0, streak = 0, best = 0, correct = 0, seen = 0, locked = false;
+  const qEl = document.getElementById("drill-q"), opts = document.getElementById("drill-opts"), fb = document.getElementById("drill-fb");
+  function next() {
+    if (!order.length || idx >= order.length) { order = P.rand.shuffle([...Q.keys()]); idx = 0; }
+    const [q, ans] = Q[order[idx++]];
+    locked = false; fb.innerHTML = ""; qEl.innerHTML = q; P.renderMath(qEl);
+    const others = P.rand.shuffle(Object.keys(TOOLS).filter((k) => k !== ans)).slice(0, 3);
+    opts.innerHTML = "";
+    for (const k of P.rand.shuffle([ans, ...others])) {
+      const b = P.el("button", { class: "choice", text: TOOLS[k] }, opts);
+      b.onclick = () => {
+        if (locked) return; locked = true; seen++;
+        const cur = Q[order[idx - 1]];
+        const ok = k === ans;
+        b.classList.add(ok ? "right" : "wrong");
+        [...opts.children].forEach((c) => c.textContent === TOOLS[ans] && c.classList.add("right"));
+        if (ok) { correct++; streak++; best = Math.max(best, streak); } else streak = 0;
+        fb.innerHTML = (ok ? "<b>✓ Yes.</b> " : "<b>✗</b> ") + cur[2] + ` <a href="${LINK[ans]}">Review →</a>`;
+        P.renderMath(fb); stats();
+      };
+    }
+  }
+  function stats() { P.readout("#drill-read", [{ label: "score", value: `${correct}/${seen}` }, { label: "streak", value: streak, color: "c3" }, { label: "best", value: best, color: "c2" }]); }
+  P.button("#drill-ctl", "Next question →", next);
+  next(); stats();
+})();
+</script>
+</body>
+</html>

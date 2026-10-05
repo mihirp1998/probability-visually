@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Expectation, inequalities &amp; limits · Probability, visually</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="assets/lib.js"></script>
+  <style>
+    #vr-chart svg, #bayes-grid svg, #tree-svg svg { touch-action: none; }
+    #vr-chart svg { cursor: ew-resize; overflow: hidden; }
+    .tree-node { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+    .tree-edge { stroke: var(--c6); stroke-width: 1.5; fill: none; }
+    #tree-svg text, #bayes-grid text { font-family: inherit; }
+  </style>
+</head>
+<body data-page="expectation">
+<main><div class="content">
+
+<h1>⚖️ Expectation, inequalities &amp; limits</h1>
+<p class="lede">The toolkit behind almost every "what's the expected…" or "bound the probability that…" question: what an average really is, how spread is measured, how to bound tails when you can't compute them, how to update beliefs with evidence, and why averages always end up Gaussian.</p>
+
+<!-- ===================================================== EXPECTATION & VARIANCE -->
+<h2 id="expectation-variance">Expectation &amp; variance</h2>
+
+<h3 id="expectation">Expectation: the balance point</h3>
+<p>The expectation $\E[X]$ is the <strong>probability-weighted average</strong> of the values $X$ can take. Physically, if you place a mass $P(X=x)$ at each point $x$ on a ruler, $\E[X]$ is where the ruler balances. It is also what the average of many independent draws settles down to (that is the <a href="#law-of-large-numbers">law of large numbers</a>).</p>
+<div class="callout key">
+$$\E[X]=\sum_x x\,P(X=x)\qquad\text{or}\qquad \E[X]=\int_{-\infty}^{\infty}x\,f(x)\,dx$$
+</div>
+<div class="callout fix"><p>The original notes wrote $\sum_x x\,P(X=k)$. The index must match: it is $\sum_x x\,P(X=x)$.</p></div>
+
+<p><strong>Expectation of a function</strong> (sometimes called LOTUS, the "law of the unconscious statistician"). To get $\E[g(X)]$ you do <em>not</em> need the distribution of $g(X)$. Just average $g$ over the distribution of $X$:</p>
+$$\E[g(X)]=\sum_x g(x)\,P(X=x)\qquad\text{or}\qquad \int_{-\infty}^{\infty}g(x)\,f(x)\,dx$$
+
+<div class="callout tip"><p><strong>Worked example.</strong> A fair die $X$: $\E[X]=\frac{1+2+\dots+6}{6}=3.5$ and $\E[X^2]=\frac{1+4+9+16+25+36}{6}=\frac{91}{6}$. Note that $\E[X^2]\neq(\E[X])^2=12.25$. The gap between them is exactly the variance (next).</p></div>
+
+<h3 id="tail-formula">The tail formula</h3>
+<p>For a <strong>non-negative</strong> random variable you can skip the density entirely and integrate the <em>survival function</em> $P(X>x)=1-F(x)$:</p>
+<div class="callout key">
+$$\E[X]=\int_0^\infty P(X>x)\,dx=\int_0^\infty \big(1-F(x)\big)\,dx \qquad\qquad \E[X]=\sum_{k=0}^{\infty}P(X>k)\ \ \text{(non-negative integers)}$$
+</div>
+<div class="callout intuition"><p>Think of $X$ as a length. A length is the sum of all the little $dx$ slices you pass on the way from $0$ to $X$. Each slice at height $x$ is "counted" exactly when $X>x$, which happens with probability $P(X>x)$. Adding up those probabilities over all slices gives the average length.</p></div>
+<details><summary>Proof (one line with indicators)</summary>
+  <p>Write $X=\int_0^\infty \1[X>x]\,dx$ (the indicator is 1 for $x\in[0,X)$, so the integral is exactly $X$). Take expectations and swap $\E$ with $\int$ (fine for non-negative integrands):</p>
+  $$\E[X]=\int_0^\infty \E\big[\1[X>x]\big]\,dx=\int_0^\infty P(X>x)\,dx.$$
+  <p>The discrete version is the same with $X=\sum_{k=0}^{\infty}\1[X>k]$.</p>
+</details>
+
+<div class="widget" id="w-tail">
+  <div class="widget-title">$\E[X]$ is the area under the survival curve</div>
+  <div class="widget-desc">The curve is $P(X>x)$. The shaded area under it equals the mean (dashed line). Drag the parameter and watch the area and the mean move together. Use the strip slider to highlight one slice: its height is $P(X>t)$.</div>
+  <div class="controls" id="tl-ctl"></div>
+  <div class="controls" id="tl-params"></div>
+  <div class="chart" id="tl-chart"></div>
+  <div class="readout" id="tl-read"></div>
+</div>
+
+<div class="callout tip"><p><strong>Where it shines:</strong> maxima and minima. For a min, $P(\min>x)=\prod_i P(X_i>x)$ is easy, so the tail formula gives $\E[\min]$ immediately. Example: $n$ iid $\Unif(0,1)$ have $\E[\min]=\int_0^1(1-x)^n\,dx=\frac{1}{n+1}$. See <a href="problems.html#max-min-of-n-rvs">max/min of n RVs</a>. For a geometric, $\E[X]=\sum_{k\ge0}(1-p)^k=1/p$ in one line.</p></div>
+
+<h3 id="variance">Variance: average squared distance from the mean</h3>
+<p>Variance measures spread: how far, on average, $X$ lands from its mean, where "far" is measured by the <em>squared</em> distance. The standard deviation $\sigma=\sqrt{\Var(X)}$ brings it back to the original units.</p>
+<div class="callout key">
+$$\Var(X)=\E\big[(X-\E[X])^2\big]=\E[X^2]-(\E[X])^2$$
+</div>
+<p>The first form is the definition ("mean of squares of deviations"). The second form ("mean of square minus square of mean") is almost always easier to compute.</p>
+<details><summary>Proof that the two forms agree</summary>
+  <p>Let $\mu=\E[X]$, a constant. Expand and use linearity:</p>
+  $$\E[(X-\mu)^2]=\E[X^2]-2\mu\,\E[X]+\mu^2=\E[X^2]-2\mu^2+\mu^2=\E[X^2]-\mu^2.$$
+  <p>Since the left side is an average of squares, it is $\ge0$, which proves $\E[X^2]\ge(\E[X])^2$ for free.</p>
+</details>
+
+<div class="widget" id="w-var">
+  <div class="widget-title">Variance as the average area of squares</div>
+  <div class="widget-desc">Each dot is an equally likely value of $X$. <b>Drag the dots</b> left and right. The triangle is the mean (the balance point). Each colored square has side $|x_i-\mu|$, so its area is the squared deviation. The variance is the <em>average</em> square area, drawn as the dashed square of side $\sigma$.</div>
+  <div class="controls" id="vr-ctl"></div>
+  <div class="chart" id="vr-chart"></div>
+  <div class="readout" id="vr-read"></div>
+</div>
+
+<div class="callout intuition"><p>Why squares and not absolute distances? Squares make the algebra beautiful: variances of independent pieces <em>add</em>, and $\E[X^2]-(\E X)^2$ falls out. Squares also punish big deviations heavily, which is why one outlier can blow up the variance (try dragging one dot far away).</p></div>
+
+<p><strong>Shifting and scaling.</strong> Adding a constant moves every value and the mean together, so the spread is unchanged. Scaling by $a$ scales every deviation by $a$ and every squared deviation by $a^2$:</p>
+<div class="facts">
+  <div class="fact"><div class="label">Shift &amp; scale (mean)</div><div class="val">$\E[aX+b]=a\E[X]+b$</div></div>
+  <div class="fact"><div class="label">Shift &amp; scale (variance)</div><div class="val">$\Var(aX+b)=a^2\Var(X)$</div></div>
+  <div class="fact"><div class="label">Std dev</div><div class="val">$\sigma_{aX+b}=|a|\,\sigma_X$</div></div>
+</div>
+
+<h3 id="linearity-of-expectation">Linearity of expectation</h3>
+<div class="callout key">
+$$\E[aX+bY+c]=a\,\E[X]+b\,\E[Y]+c \qquad\text{always, even if $X$ and $Y$ are dependent}$$
+</div>
+<p>This is the single most useful fact in probability interviews. The trick is to write a complicated count as a <strong>sum of simple indicators</strong> and add up their expectations, completely ignoring how they depend on one another.</p>
+<div class="callout tip"><p><strong>Classic:</strong> $n$ people throw their hats in a pile and each picks one at random. Expected number who get their own hat? Let $X_i=\1[\text{person } i \text{ gets own hat}]$. By symmetry $P(X_i=1)=1/n$, so $\E[\sum X_i]=n\cdot\frac1n=1$, for every $n$. The $X_i$ are dependent, and it doesn't matter. More in <a href="problems.html#counting-in-expectation">counting in expectation</a>.</p></div>
+<details><summary>Proof (discrete case)</summary>
+  $$\E[X+Y]=\sum_{x,y}(x+y)P(X=x,Y=y)=\sum_x x\underbrace{\sum_y P(x,y)}_{P(X=x)}+\sum_y y\underbrace{\sum_x P(x,y)}_{P(Y=y)}=\E[X]+\E[Y].$$
+  <p>Only marginals appear, so no independence is needed.</p>
+</details>
+
+<h3 id="covariance">Products, sums of variances &amp; covariance</h3>
+<p>Products and variances are where dependence starts to matter. <strong>Covariance</strong> measures how $X$ and $Y$ move together:</p>
+$$\Cov(X,Y)=\E\big[(X-\E X)(Y-\E Y)\big]=\E[XY]-\E[X]\,\E[Y],\qquad \rho=\frac{\Cov(X,Y)}{\sigma_X\sigma_Y}\in[-1,1].$$
+<div class="facts">
+  <div class="fact"><div class="label">Independent ⇒</div><div class="val">$\E[XY]=\E[X]\,\E[Y]$</div></div>
+  <div class="fact"><div class="label">Always</div><div class="val">$\Var(X+Y)=\Var X+\Var Y+2\Cov(X,Y)$</div></div>
+  <div class="fact"><div class="label">Uncorrelated ⇒</div><div class="val">$\Var(X+Y)=\Var X+\Var Y$</div></div>
+</div>
+<details><summary>Proof of the variance-of-a-sum formula</summary>
+  <p>Let $\tilde X=X-\E X$ and $\tilde Y=Y-\E Y$. Then</p>
+  $$\Var(X+Y)=\E[(\tilde X+\tilde Y)^2]=\E[\tilde X^2]+\E[\tilde Y^2]+2\E[\tilde X\tilde Y]=\Var X+\Var Y+2\Cov(X,Y).$$
+  <p>More generally $\Var\big(\sum_i X_i\big)=\sum_i\Var X_i+2\sum_{i&lt;j}\Cov(X_i,X_j)$.</p>
+</details>
+<div class="callout fix"><p>The original notes say $\Var(X+Y)=\Var X+\Var Y$ "if independent". That is true, but stronger than needed: it holds whenever $X$ and $Y$ are <strong>uncorrelated</strong> ($\Cov=0$). Independence implies uncorrelated, but not the other way round.</p></div>
+<div class="callout warn"><p><strong>Two classic traps.</strong> (1) $\Var(X-Y)=\Var X+\Var Y$ for independent $X,Y$. The variances still <em>add</em>, because $(-1)^2=1$. (2) Uncorrelated does not mean independent: take $X$ uniform on $\{-1,0,1\}$ and $Y=X^2$. Then $\Cov(X,Y)=\E[X^3]-\E[X]\E[X^2]=0$, yet $Y$ is a function of $X$.</p></div>
+
+<div class="quiz" data-answer="2">
+  <div class="q">$X$ and $Y$ are independent with $\Var X=4$ and $\Var Y=1$. What is $\Var(2X-3Y+7)$?</div>
+  <ul><li>$5$</li><li>$-1$</li><li>$25$</li><li>$32$</li></ul>
+  <div class="explain">Constants vanish, coefficients get squared, and variances add even with a minus sign: $2^2\cdot4+3^2\cdot1=16+9=25$.</div>
+</div>
+
+<!-- ===================================================== PMF / PDF / CDF -->
+<h2 id="pmf-pdf-cdf">The zoo of functions: PMF, PDF, CDF</h2>
+<p>Three ways to describe a distribution. Know which one you are holding, and how to convert between them.</p>
+
+<table>
+  <tr><th></th><th>What it gives</th><th>Properties</th></tr>
+  <tr><td><strong>PMF</strong> (discrete)<br>$p(k)=P(X=k)$</td><td>an actual probability for each value</td><td>$p(k)\ge0$, $\ \sum_k p(k)=1$</td></tr>
+  <tr><td><strong>PDF</strong> (continuous)<br>$f(x)$</td><td>a probability <em>density</em>: $P(a\le X\le b)=\int_a^b f(x)\,dx$</td><td>$f(x)\ge0$, $\ \int f=1$, $\ f=F'$. Can exceed 1!</td></tr>
+  <tr><td><strong>CDF</strong> (both)<br>$F(x)=P(X\le x)$</td><td>probability of landing at or below $x$</td><td>non-decreasing, from 0 to 1, right-continuous</td></tr>
+</table>
+
+<div class="callout key">
+$$F(x)=\sum_{k\le x}p(k)\quad\text{(discrete)}\qquad\qquad F(x)=\int_{-\infty}^{x}f(t)\,dt\quad\text{(continuous)}$$
+$$f(x)=F'(x)\qquad\qquad P(a&lt;X\le b)=F(b)-F(a)$$
+</div>
+
+<div class="callout intuition"><p>A PDF is like mass per unit length on a rod. A single point has zero mass ($P(X=x)=0$ for continuous $X$), but a short interval of width $dx$ has mass $\approx f(x)\,dx$. The CDF is the running total of mass as you walk from left to right, so its slope is the density.</p></div>
+
+<div class="widget" id="w-cdf">
+  <div class="widget-title">PDF ↔ CDF: area on the left equals height on the right</div>
+  <div class="widget-desc">Move $a$ and $b$. The shaded area under the PDF/PMF (left) equals the vertical jump $F(b)-F(a)$ on the CDF (right). Push $a$ all the way left to see $F(b)$ itself as an area. For the discrete case notice which endpoint is included.</div>
+  <div class="controls" id="cd-ctl"></div>
+  <div class="controls" id="cd-params"></div>
+  <div class="twocol"><div class="chart" id="cd-pdf"></div><div class="chart" id="cd-cdf"></div></div>
+  <div class="readout" id="cd-read"></div>
+</div>
+
+<div class="callout fix"><p>Two small fixes to the original. (1) It wrote $F(x)=\int_{-\infty}^x f(x)\,dx$, reusing $x$ as both the limit and the integration variable. Use a dummy variable: $\int_{-\infty}^x f(t)\,dt$. (2) "$P(a\le X\le b)=F(b)-F(a)$" is only right for continuous $X$, where single points have probability zero. In general $F(b)-F(a)=P(a&lt;X\le b)$. For an integer-valued $X$, $P(a\le X\le b)=F(b)-F(a-1)$.</p></div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">$X\sim\Unif(0,\tfrac14)$. What is $f(0.1)$?</div>
+  <ul><li>It can't be more than 1, so the question is ill-posed</li><li>$4$</li><li>$0.25$</li><li>$0$, because $P(X=0.1)=0$</li></ul>
+  <div class="explain">The density is $1/(b-a)=4$ on $[0,\tfrac14]$. Densities can exceed 1; only <em>areas</em> under them are probabilities. And yes, $P(X=0.1)=0$, but that is a probability, not the density.</div>
+</div>
+
+<!-- ===================================================== INEQUALITIES -->
+<h2 id="inequalities">Inequalities</h2>
+<p>When you can't compute a probability exactly (or don't know the distribution), you can still <strong>bound</strong> it using only a mean or a variance. These bounds are loose, but they are universal, and they power the proofs of the limit theorems.</p>
+
+<h3 id="markov-s-inequality">Markov's inequality</h3>
+<p>For any <strong>non-negative</strong> random variable $X$ and any $a>0$:</p>
+<div class="callout key">$$P(X\ge a)\le\frac{\E[X]}{a}$$</div>
+<div class="callout intuition"><p>If the average income is 50k, at most 1 in 10 people can earn 500k or more. Otherwise those people alone would push the average above 50k. Non-negativity matters: no one can have negative income to "cancel out" the rich.</p></div>
+<details><summary>Proof</summary>
+  <p>Drop the part of the sum below $a$ (it's non-negative), then replace each remaining $x$ by the smaller value $a$:</p>
+  $$\E[X]\ge\sum_{x\ge a}x\,P(X=x)\ge a\sum_{x\ge a}P(X=x)=a\,P(X\ge a).$$
+  <p>Slicker version for any $X\ge0$: pointwise $a\,\1[X\ge a]\le X$. Take expectations to get $a\,P(X\ge a)\le\E[X]$.</p>
+</details>
+
+<h3 id="chebyshev-s-inequality">Chebyshev's inequality</h3>
+<p>For any random variable with mean $\mu$ and variance $\sigma^2$ (no non-negativity needed):</p>
+<div class="callout key">$$P(|X-\mu|\ge k\sigma)\le\frac{1}{k^2}\qquad\Longleftrightarrow\qquad P(|X-\mu|\ge\epsilon)\le\frac{\sigma^2}{\epsilon^2}$$</div>
+<p>The right form substitutes $\epsilon=k\sigma$. Equivalently, at least $1-1/k^2$ of the probability lies within $k$ standard deviations of the mean. For example, <strong>at least 75% lies within 2 sd</strong> and at least 89% within 3 sd, for <em>any</em> distribution. Compare with the normal's 95% and 99.7%.</p>
+<details><summary>Proof: apply Markov to $(X-\mu)^2$</summary>
+  $$P(|X-\mu|\ge k\sigma)=P\big((X-\mu)^2\ge k^2\sigma^2\big)\le\frac{\E[(X-\mu)^2]}{k^2\sigma^2}=\frac{\sigma^2}{k^2\sigma^2}=\frac1{k^2}.$$
+  <p>The square makes the variable non-negative, which is exactly what Markov needs.</p>
+</details>
+
+<div class="widget" id="w-bounds">
+  <div class="widget-title">How loose are Markov and Chebyshev?</div>
+  <div class="widget-desc">Solid curves are the <b>true</b> tail probabilities, and dashed curves are the <b>bounds</b>. The bound is always above the truth, often far above. Pick "worst case" to see a distribution where each bound is hit exactly (so they can't be improved without more information).</div>
+  <div class="controls" id="bd-ctl"></div>
+  <div class="twocol"><div class="chart" id="bd-markov"></div><div class="chart" id="bd-cheb"></div></div>
+  <div class="readout" id="bd-read"></div>
+</div>
+
+<div class="callout tip"><p>In an interview, if you are asked to "bound" a probability with only a mean, reach for Markov. With a variance, reach for Chebyshev. If you have independence and want an exponentially small bound, mention Chernoff/Hoeffding bounds (apply Markov to $e^{tX}$).</p></div>
+
+<div class="quiz" data-answer="3">
+  <div class="q">A non-negative random variable has mean 2 and variance 1. What is the best bound you can give on $P(X\ge 5)$ from Markov and Chebyshev?</div>
+  <ul><li>$2/5$ (Markov)</li><li>$1/25$</li><li>$1/4$</li><li>$1/9$ (Chebyshev)</li></ul>
+  <div class="explain">Markov gives $2/5=0.4$. Chebyshev: $X\ge5$ means $|X-2|\ge3=3\sigma$, so $P\le1/9\approx0.11$. Take the better (smaller) one: $1/9$. (A one-sided version, Cantelli's inequality, gives the slightly better $1/10$.)</div>
+</div>
+
+<h3 id="jensen-s-inequality">Jensen's inequality</h3>
+<p>Jensen tells you how expectations interact with curved functions:</p>
+<div class="callout key">
+$$\varphi\text{ convex}\implies\varphi(\E[X])\le\E[\varphi(X)]\qquad\qquad\varphi\text{ concave}\implies\varphi(\E[X])\ge\E[\varphi(X)]$$
+</div>
+<div class="callout intuition"><p>A convex function curves upward like a bowl. Every chord between two points on the curve lies <em>above</em> the curve. $\E[\varphi(X)]$ is a point on such a chord (an average of the endpoint heights), while $\varphi(\E X)$ is on the curve directly below it. To remember the direction, use $\varphi(x)=x^2$ with $X=\pm1$: $\varphi(\E X)=\varphi(0)=0$ but $\E[\varphi(X)]=1$. This is just $\Var X\ge0$.</p></div>
+
+<div class="widget" id="w-jensen">
+  <div class="widget-title">Chord above, curve below</div>
+  <div class="widget-desc">$X$ takes value $x_1$ with probability $1-p$ and $x_2$ with probability $p$. The orange point $(\E X,\E\varphi(X))$ slides along the chord, and the blue point $(\E X,\varphi(\E X))$ sits on the curve. The pink gap is the "Jensen gap". It flips sign for concave functions and vanishes for linear ones.</div>
+  <div class="controls" id="jn-ctl"></div>
+  <div class="chart" id="jn-chart"></div>
+  <div class="readout" id="jn-read"></div>
+</div>
+
+<div class="twocol">
+<div>
+<p><strong>Convex</strong> ($\varphi''\ge0$, slope increasing):</p>
+<ul>
+  <li>$x^2,\ x^4,\dots$ ($x^n$ for even $n$)</li>
+  <li>$|x|$</li>
+  <li>$a^x$ for $a>1$ (e.g. $e^x$)</li>
+  <li>$1/x$ for $x>0$</li>
+  <li>$\max(x_1,x_2,\dots)$</li>
+</ul>
+</div>
+<div>
+<p><strong>Concave</strong> ($\varphi''\le0$, slope decreasing):</p>
+<ul>
+  <li>$\sqrt x$</li>
+  <li>$\log x$</li>
+  <li>$x^p$ for $0&lt;p&lt;1$</li>
+  <li>$\min(x_1,x_2,\dots)$</li>
+</ul>
+</div>
+</div>
+<p class="small muted">Linear functions are both convex and concave, so Jensen holds with equality: that is linearity of expectation. ($|x|$ and $\max$ aren't twice differentiable, but they are convex by the chord definition.)</p>
+<p>Worth memorizing: $\log\E[X]\ge\E[\log X]$, and $\E[1/X]\ge1/\E[X]$ for positive $X$.</p>
+
+<div class="quiz" data-answer="0">
+  <div class="q">You drive 60 km at a speed chosen uniformly from $\{30, 90\}$ km/h. Is the expected travel time more or less than 60/(expected speed) = 1 hour?</div>
+  <ul><li>More, since $t=60/v$ is convex in $v$</li><li>Less, since $t=60/v$ is concave in $v$</li><li>Exactly 1 hour, by linearity</li></ul>
+  <div class="explain">$\E[60/V]=\tfrac12(2+\tfrac23)=\tfrac43$ hours $>1$. Since $1/v$ is convex, $\E[1/V]\ge1/\E[V]$. This is why "average speed" puzzles trip people up.</div>
+</div>
+
+<h3 id="am-gm-inequality">AM–GM inequality</h3>
+<p>For non-negative numbers, the arithmetic mean is at least the geometric mean, with equality iff all $a_i$ are equal:</p>
+<div class="callout key">$$\frac{a_1+\cdots+a_n}{n}\ \ge\ \sqrt[n]{a_1\cdots a_n}$$</div>
+<div class="callout fix"><p>The original notes wrote the inequality sign backwards ($\le$), contradicting their own sentence "arithmetic mean always ≥ geometric mean". Sanity check: $a=(1,4)$ gives AM $=2.5\ge$ GM $=2$.</p></div>
+<details><summary>Proof via Jensen</summary>
+  <p>Let $X$ be uniform on $\{a_1,\dots,a_n\}$ (all $a_i>0$; if some $a_i=0$ the GM is 0 and there's nothing to prove). Since $\log$ is concave, $\log\E[X]\ge\E[\log X]$:</p>
+  $$\log\frac{a_1+\dots+a_n}{n}\ \ge\ \frac1n\sum_i\log a_i=\log\sqrt[n]{a_1\cdots a_n}.$$
+  <p>Exponentiate both sides ($e^x$ is increasing, so the inequality is preserved).</p>
+</details>
+
+<h3 id="cauchy-schwarz-inequality">Cauchy–Schwarz inequality</h3>
+<div class="callout key">$$\big(\E[XY]\big)^2\le\E[X^2]\,\E[Y^2]\qquad\qquad\Big(\sum_{i=1}^n x_iy_i\Big)^2\le\Big(\sum_{i=1}^n x_i^2\Big)\Big(\sum_{i=1}^n y_i^2\Big)$$</div>
+<p>Geometrically, it is $|\langle x,y\rangle|\le\|x\|\,\|y\|$: a dot product can't exceed the product of the lengths. Applied to the centered variables $X-\E X$ and $Y-\E Y$, it says $|\Cov(X,Y)|\le\sigma_X\sigma_Y$, i.e. <strong>correlation is always between −1 and 1</strong>.</p>
+<details><summary>Proof (the discriminant trick)</summary>
+  <p>For every real $t$, $0\le\E[(X-tY)^2]=\E[X^2]-2t\,\E[XY]+t^2\,\E[Y^2]$. A quadratic in $t$ that is never negative has at most one root, so its discriminant is $\le0$:</p>
+  $$4\,\E[XY]^2-4\,\E[X^2]\,\E[Y^2]\le0.$$
+</details>
+
+<h3 id="union-bound">Union bound</h3>
+<div class="callout key">$$P(A_1\cup A_2\cup\cdots\cup A_n)\le P(A_1)+P(A_2)+\cdots+P(A_n)$$</div>
+<p>Adding the probabilities double-counts the overlaps, so the sum can only overshoot. It needs no independence at all, and it is tight when the events are disjoint. Proof in one line: $\1[\cup A_i]\le\sum_i\1[A_i]$ pointwise, then take expectations.</p>
+<div class="callout tip"><p>Typical use: "show that with high probability <em>none</em> of $n$ bad things happen". If each has probability $\le\delta/n$, the union bound gives $P(\text{any})\le\delta$.</p></div>
+
+<!-- ===================================================== CONDITIONAL -->
+<h2 id="conditional-probability">Conditional probability</h2>
+<p>Conditioning on $B$ means: <strong>throw away every outcome where $B$ didn't happen, and renormalize</strong> what's left so it sums to 1.</p>
+$$P(A\mid B)=\frac{P(A\cap B)}{P(B)}$$
+
+<p>With two random variables $X$ and $Y$ there are three related distributions. Here is a small example joint table:</p>
+<table>
+  <tr><th></th><th>$Y=0$</th><th>$Y=1$</th><th>marginal $P(X=x)$</th></tr>
+  <tr><th>$X=0$</th><td>0.30</td><td>0.10</td><td><b>0.40</b></td></tr>
+  <tr><th>$X=1$</th><td>0.20</td><td>0.40</td><td><b>0.60</b></td></tr>
+  <tr><th>marginal $P(Y=y)$</th><td><b>0.50</b></td><td><b>0.50</b></td><td>1</td></tr>
+</table>
+<ul>
+  <li><strong>Joint</strong> $P(X=x,Y=y)$: the cells. For example $P(X=1,Y=1)=0.40$.</li>
+  <li><strong>Marginal</strong> $P(X=x)=\sum_yP(X=x,Y=y)$: the row sums, written in the "margin". For example $P(X=1)=0.6$.</li>
+  <li><strong>Conditional</strong> $P(X=x\mid Y=y)=\frac{P(X=x,Y=y)}{P(Y=y)}$: one column, rescaled. For example $P(X=1\mid Y=1)=0.40/0.50=0.8$.</li>
+</ul>
+
+<h3 id="bayes-rule">Bayes' rule</h3>
+<div class="callout key">$$P(A\mid B)=\frac{P(B\mid A)\,P(A)}{P(B)},\qquad P(B)=P(B\mid A)P(A)+P(B\mid A^c)P(A^c)$$</div>
+<ul>
+  <li>$P(A)$ is the <strong>prior</strong>: what we believed before seeing $B$.</li>
+  <li>$P(B\mid A)$ is the <strong>likelihood</strong>: how well $A$ explains the evidence.</li>
+  <li>$P(A\mid B)$ is the <strong>posterior</strong>: what we believe after seeing $B$.</li>
+  <li>The denominator $P(B)$ comes from the <a href="#law-of-total-probability">law of total probability</a>.</li>
+</ul>
+<details><summary>Proof</summary>
+  <p>Write the joint probability two ways: $P(A\cap B)=P(A\mid B)P(B)=P(B\mid A)P(A)$. Divide by $P(B)$.</p>
+</details>
+
+<div class="widget" id="w-bayes">
+  <div class="widget-title">The medical test, as 1,000 people</div>
+  <div class="widget-desc">Each dot is a person. Sick people are pink, and those who test positive are drawn solid. Among <em>everyone who tests positive</em> (all the solid dots), what fraction is actually sick? With a rare disease, the false positives (solid orange) from the huge healthy group swamp the true positives.</div>
+  <div class="controls" id="by-ctl"></div>
+  <div class="chart" id="bayes-grid"></div>
+  <div id="by-legend"></div>
+  <div class="readout" id="by-read"></div>
+</div>
+
+<div class="callout intuition"><p><strong>Natural frequencies beat formulas.</strong> Disease prevalence 1%, test sensitivity 90%, false-positive rate 9%. In 1,000 people: 10 sick, of whom 9 test positive. 990 healthy, of whom about 89 test positive. So only $9/(9+89)\approx9\%$ of positives are sick. The prior matters enormously.</p></div>
+
+<div class="callout tip"><p><strong>Odds form</strong> (fast mental math): posterior odds = prior odds × likelihood ratio.</p>
+$$\frac{P(A\mid B)}{P(A^c\mid B)}=\frac{P(A)}{P(A^c)}\cdot\frac{P(B\mid A)}{P(B\mid A^c)}$$
+<p>Above: prior odds $1:99$, likelihood ratio $0.9/0.09=10$, posterior odds $10:99$, so $P\approx 10/109\approx9\%$. For repeated independent tests, just multiply in another likelihood ratio.</p></div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">One of 100 coins is double-headed; the rest are fair. You pick a coin at random and flip it 5 times: all heads. Probability it's the double-headed coin?</div>
+  <ul><li>$1/100$</li><li>$32/131$</li><li>$31/32$</li><li>$1/2$</li></ul>
+  <div class="explain">Prior odds $1:99$. The likelihood ratio is $1/(1/2)^5=32$. Posterior odds are $32:99$, so $P=32/131\approx0.24$.</div>
+</div>
+
+<h3 id="law-of-total-probability">Law of total probability</h3>
+<p>Split the world into disjoint cases $Y=y$ (a <em>partition</em>), compute the probability in each case, and average using how likely each case is:</p>
+<div class="callout key">$$P(A)=\sum_yP(A\mid Y=y)\,P(Y=y)$$</div>
+<p>This is the "branching tree" picture: multiply along each branch, then add over the branches. It is how you compute the denominator in Bayes' rule.</p>
+
+<h3 id="law-of-total-expectation">Law of total expectation (tower property)</h3>
+<p>The same idea for averages. The overall average is the weighted average of the case-by-case averages:</p>
+<div class="callout key">
+$$\E[X]=\sum_y\E[X\mid Y=y]\,P(Y=y)\qquad\text{or}\qquad\int_{-\infty}^{\infty}\E[X\mid Y=y]\,f_Y(y)\,dy$$
+$$\text{compactly:}\qquad \E[X]=\E_Y\big[\E[X\mid Y]\big]$$
+</div>
+<p>In the compact form, $\E[X\mid Y]$ is itself a <strong>random variable</strong>: a function of $Y$ that takes the value $\E[X\mid Y=y]$ when $Y=y$. This is the engine behind <a href="problems.html#first-step-analysis">first-step analysis</a>, where you condition on the first step.</p>
+<details><summary>Proof (discrete)</summary>
+  $$\sum_y\E[X\mid Y=y]P(Y=y)=\sum_y\sum_x x\,\frac{P(X=x,Y=y)}{P(Y=y)}P(Y=y)=\sum_x x\sum_yP(X=x,Y=y)=\sum_x x\,P(X=x)=\E[X].$$
+</details>
+
+<div class="widget" id="w-tree">
+  <div class="widget-title">Conditioning as a tree: roll a die, then flip that many coins</div>
+  <div class="widget-desc">$Y$ is a die roll. Then flip $Y$ coins with heads-probability $p$, and let $X$ be the number of heads. Given $Y=y$, $X\sim\Bin(y,p)$, so $\E[X\mid Y=y]=yp$. Each branch contributes (branch probability) × (branch average). Try a loaded die, then simulate to check.</div>
+  <div class="controls" id="tr-ctl"></div>
+  <div class="chart" id="tree-svg"></div>
+  <div class="readout" id="tr-read"></div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <div class="q">You flip a fair coin. On heads you roll one die, and on tails you roll two dice and add them. What is the expected total?</div>
+  <ul><li>$3.5$</li><li>$7$</li><li>$5.25$</li><li>$4.5$</li></ul>
+  <div class="explain">$\E[X]=\tfrac12\cdot3.5+\tfrac12\cdot7=5.25$. Condition on the coin, then average the conditional means.</div>
+</div>
+
+<details><summary>Bonus: law of total variance ("Eve's law")</summary>
+  $$\Var(X)=\underbrace{\E\big[\Var(X\mid Y)\big]}_{\text{average spread within groups}}+\underbrace{\Var\big(\E[X\mid Y]\big)}_{\text{spread between group means}}$$
+  <p>In the die-and-coins example with a fair die and fair coins: $\Var(X\mid Y)=Y/4$ and $\E[X\mid Y]=Y/2$, so $\Var X=\E[Y]/4+\Var(Y)/4=\tfrac{3.5}{4}+\tfrac{35/12}{4}\approx1.604$.</p>
+</details>
+
+<!-- ===================================================== LIMIT THEOREMS -->
+<h2 id="limit-theorems">Limit theorems</h2>
+<p>Two theorems about the sample mean $\bar X_n=\frac1n\sum_{i=1}^nX_i$ of $n$ iid draws with mean $\mu$ and variance $\sigma^2$. The <strong>LLN</strong> says <em>where</em> $\bar X_n$ goes (to $\mu$). The <strong>CLT</strong> says <em>how</em> it fluctuates on the way (Gaussian, with width $\sigma/\sqrt n$).</p>
+
+<h3 id="law-of-large-numbers">Law of large numbers</h3>
+<div class="callout key">$$P\big(|\bar X_n-\mu|>\epsilon\big)\ \to\ 0\qquad\text{as }n\to\infty,\ \text{for any }\epsilon>0$$</div>
+<p>In words, the running average of many independent draws gets arbitrarily close to the true mean with probability approaching 1. This is why casinos always win in the long run, and why "expected value" is the right thing to optimize for repeated bets.</p>
+<details open><summary>Proof from Chebyshev (when $\sigma^2&lt;\infty$)</summary>
+  <p>$\E[\bar X_n]=\mu$ and $\Var(\bar X_n)=\sigma^2/n$ (derived below). Apply Chebyshev in its $\epsilon$-form:</p>
+  $$P\big(|\bar X_n-\mu|>\epsilon\big)\le\frac{\Var(\bar X_n)}{\epsilon^2}=\frac{\sigma^2}{n\epsilon^2}\ \to\ 0.$$
+</details>
+
+<div class="widget" id="w-lln">
+  <div class="widget-title">Running averages settle into the ε-band</div>
+  <div class="widget-desc">Each line is one person's running average of fair die rolls (true mean 3.5). The x-axis is logarithmic. The green band is $\mu\pm\epsilon$. The dashed orange curves are $\mu\pm2\sigma/\sqrt n$ (two standard errors), which is the funnel the paths squeeze through.</div>
+  <div class="controls" id="ln-ctl"></div>
+  <div class="chart" id="ln-chart"></div>
+  <div class="readout" id="ln-read"></div>
+</div>
+
+<div class="callout warn"><p><strong>The gambler's fallacy is not the LLN.</strong> After 10 heads in a row the next flip is still 50/50. The average converges not because the coin "compensates", but because the early streak is <em>diluted</em> by an ever larger number of ordinary flips.</p></div>
+
+<h3 id="central-limit-theorem">Central limit theorem</h3>
+<p>Whatever the shape of the distribution of each $X_i$ (skewed, bimodal, discrete…), as long as it has finite variance, the sample mean is <strong>approximately Gaussian</strong> for large $n$:</p>
+<div class="callout key">$$\bar X_n=\frac1n\sum_{i=1}^nX_i\ \approx\ \N\!\left(\mu,\ \frac{\sigma^2}{n}\right)\qquad\Longleftrightarrow\qquad\frac{\bar X_n-\mu}{\sigma/\sqrt n}\ \xrightarrow{d}\ \N(0,1)$$</div>
+<div class="callout intuition"><p>Adding many independent random pieces washes out the individual quirks: lumps in one draw get averaged against dips in others, and only the mean and the variance survive. You already saw a preview with <a href="distributions.html#uniform">sums of uniforms</a>.</p></div>
+
+<div class="widget" id="w-clt">
+  <div class="widget-title">CLT: any shape → bell curve</div>
+  <div class="widget-desc">Pick a strange source distribution and the number $n$ of draws to average. The histogram shows 4,000 sample means and the curve is the CLT prediction $\N(\mu,\sigma^2/n)$. At $n=1$ you see the source itself. Use "standardized" view to zoom in on the shape as it narrows.</div>
+  <div class="controls" id="cl-ctl"></div>
+  <div class="controls" id="cl-ctl2"></div>
+  <div class="chart" id="cl-chart"></div>
+  <div class="readout" id="cl-read"></div>
+</div>
+
+<p><strong>Where $\sigma^2/n$ comes from</strong> (this part is exact, no approximation):</p>
+$$\Var(\bar X_n)=\Var\!\Big(\frac1n\sum_{i=1}^nX_i\Big)=\frac1{n^2}\Var\!\Big(\sum_{i=1}^nX_i\Big)=\frac1{n^2}\sum_{i=1}^n\Var(X_i)=\frac{n\sigma^2}{n^2}=\frac{\sigma^2}{n}$$
+<p class="small muted">Step 2 uses $\Var(aX)=a^2\Var X$. Step 3 uses independence (uncorrelated is enough).</p>
+
+<p>The <strong>standard error</strong> is the standard deviation of $\bar X_n$:</p>
+<div class="callout key">$$\text{SE}=\frac{\sigma}{\sqrt n}$$</div>
+<p>The error shrinks like $1/\sqrt n$. To make the error 10× smaller you need <strong>100×</strong> more samples. Halving it costs 4×.</p>
+<div class="callout fix"><p>The original notes said "error shrinks like $\sqrt n$". It shrinks like $1/\sqrt n$ (equivalently, precision <em>grows</em> like $\sqrt n$). The "100× samples for 10× less error" conclusion was right.</p></div>
+
+<p>A <strong>$(1-\alpha)$ confidence interval</strong> for $\mu$ (with known $\sigma$) is</p>
+$$\bar X_n\pm z_{1-\alpha/2}\cdot\frac{\sigma}{\sqrt n},$$
+<p>for example $\bar X_n\pm1.96\,\sigma/\sqrt n$ for 95%. See the <a href="distributions.html#gaussian">z-table</a>.</p>
+
+<div class="callout warn"><p><strong>Fine print.</strong> The CLT is an <em>approximation</em> for large $n$, not an exact statement (unless the $X_i$ are themselves Gaussian). It needs finite variance: averages of Cauchy variables never converge to anything. Convergence is slower for very skewed sources (try Bernoulli(0.05) above with small $n$). The original notes' "is Gaussian" should be read as "is approximately Gaussian".</p></div>
+
+<div class="callout tip"><p><strong>Typical question:</strong> "A fair coin is flipped 10,000 times. Roughly what is the probability of more than 5,100 heads?" The count of heads has mean 5,000 and sd $\sqrt{10000\cdot\tfrac14}=50$. 5,100 is 2 sd above the mean, so the answer is about $P(Z>2)\approx2.3\%$.</p></div>
+
+<div class="quiz" data-answer="3">
+  <div class="q">A poll of 400 people has a margin of error of ±5%. Roughly how many people do you need for ±1%?</div>
+  <ul><li>2,000</li><li>800</li><li>4,000</li><li>10,000</li></ul>
+  <div class="explain">Error $\propto1/\sqrt n$. Making it 5× smaller needs $5^2=25$× more samples: $400\times25=10{,}000$.</div>
+</div>
+
+<h2 id="cheat-sheet">Cheat sheet</h2>
+<table>
+  <tr><th>Fact</th><th>Formula</th><th>Needs</th></tr>
+  <tr><td>Linearity</td><td>$\E[aX+bY+c]=a\E X+b\E Y+c$</td><td>nothing</td></tr>
+  <tr><td>Tail formula</td><td>$\E X=\int_0^\infty P(X>x)\,dx$</td><td>$X\ge0$</td></tr>
+  <tr><td>Variance</td><td>$\E[X^2]-(\E X)^2$; $\ \Var(aX+b)=a^2\Var X$</td><td>nothing</td></tr>
+  <tr><td>Sum of variances</td><td>$\Var(X+Y)=\Var X+\Var Y$</td><td>uncorrelated</td></tr>
+  <tr><td>Product</td><td>$\E[XY]=\E X\,\E Y$</td><td>independent (or uncorrelated)</td></tr>
+  <tr><td>Markov</td><td>$P(X\ge a)\le\E X/a$</td><td>$X\ge0$</td></tr>
+  <tr><td>Chebyshev</td><td>$P(|X-\mu|\ge k\sigma)\le1/k^2$</td><td>finite variance</td></tr>
+  <tr><td>Jensen</td><td>$\varphi(\E X)\le\E\varphi(X)$</td><td>$\varphi$ convex</td></tr>
+  <tr><td>Bayes</td><td>$P(A\mid B)=P(B\mid A)P(A)/P(B)$</td><td>$P(B)>0$</td></tr>
+  <tr><td>Tower</td><td>$\E X=\E[\E[X\mid Y]]$</td><td>nothing</td></tr>
+  <tr><td>LLN</td><td>$\bar X_n\to\mu$</td><td>iid, finite mean</td></tr>
+  <tr><td>CLT</td><td>$\bar X_n\approx\N(\mu,\sigma^2/n)$</td><td>iid, finite variance, large $n$</td></tr>
+</table>
+
+</div></main>
+<script src="assets/nav.js"></script>
+<script src="assets/expectation.js"></script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Classic puzzles · Probability, visually</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="assets/lib.js"></script>
+  <style>
+    /* page-specific bits for puzzle widgets */
+    .pz-svg svg { width: 100%; height: auto; display: block; }
+    .pz-svg text { font-family: inherit; }
+    .pz-status { font-size: .92em; margin: 6px 0; min-height: 1.5em; }
+    .pz-status b { color: var(--accent); }
+    .doors { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+    .door {
+      width: 64px; height: 92px; border-radius: 8px 8px 3px 3px; border: 2px solid var(--line);
+      background: var(--accent-soft); color: var(--ink); font: inherit; cursor: pointer; position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0;
+    }
+    .door .num { font-size: .78em; color: var(--muted); font-weight: 600; }
+    .door .ico { font-size: 1.7em; line-height: 1.1; }
+    .door .tag { font-size: .65em; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; height: 1.2em; }
+    .door:hover:not(:disabled) { border-color: var(--accent); }
+    .door.picked { border-color: var(--c2); box-shadow: 0 0 0 2px var(--c2) inset; }
+    .door.picked .tag { color: var(--c2); }
+    .door.open { background: var(--bg); opacity: .65; cursor: default; }
+    .door.win { border-color: var(--c3); box-shadow: 0 0 0 2px var(--c3) inset; opacity: 1; }
+    .door:disabled { cursor: default; }
+    .hist-list { font-size: .85em; color: var(--muted); margin-top: 6px; }
+    .hist-list div { margin: 2px 0; }
+    @media (max-width: 640px) { .door { width: 52px; height: 78px; } }
+  </style>
+</head>
+<body data-page="puzzles">
+<main><div class="content">
+
+<h1>🎩 Classic puzzles</h1>
+<p class="lede">These ten puzzles come up again and again in quant and ML interviews. Each one teaches a reusable trick: complements, recurrences, linearity of expectation, symmetry, counting information, or Bayes. Play with every widget. Your gut is usually wrong the first time, and seeing the simulation is what fixes it.</p>
+
+<table>
+  <tr><th>Puzzle</th><th>Answer to remember</th><th>The trick</th></tr>
+  <tr><td><a href="#birthday-problem">Birthday</a></td><td>23 people → 50.7%</td><td>complement; collisions start around $\sqrt d$</td></tr>
+  <tr><td><a href="#gambler-s-ruin">Gambler's ruin</a></td><td>fair: $a/N$, duration $a(N-a)$</td><td>first-step recurrence, martingale</td></tr>
+  <tr><td><a href="#random-walk">Random walk</a></td><td>spread $\sim\sqrt n$</td><td>variances add</td></tr>
+  <tr><td><a href="#coupon-collector">Coupon collector</a></td><td>$nH_n\approx n\ln n$</td><td>split into geometric phases</td></tr>
+  <tr><td><a href="#information-theoretic-puzzles">Weighing coins</a></td><td>$\lceil\log_3 k\rceil$ weighings</td><td>count the information</td></tr>
+  <tr><td><a href="#reservoir-sampling">Reservoir sampling</a></td><td>replace with prob $1/n$</td><td>induction</td></tr>
+  <tr><td><a href="#secretary-problem">Secretary</a></td><td>skip $n/e$, win w.p. $1/e$</td><td>sum over best's position</td></tr>
+  <tr><td><a href="#monty-hall">Monty Hall</a></td><td>switch: $2/3$</td><td>Bayes; Monty's choice carries information</td></tr>
+  <tr><td><a href="#longest-run-of-heads">Longest run</a></td><td>$\approx\log_2 n$</td><td>expected # of runs of length $\ell$ ≈ 1</td></tr>
+  <tr><td><a href="#balls-into-bins">Balls into bins</a></td><td>37% / 37% / 26%</td><td>indicators, $(1-1/m)^m\to 1/e$</td></tr>
+</table>
+
+<!-- ===================================================== BIRTHDAY -->
+<h2 id="birthday-problem">Birthday problem</h2>
+<p><strong>Problem.</strong> How many people $n$ do you need in a room before the probability that two of them share a birthday exceeds 50%? (Ignore leap years and assume birthdays are uniform over $d=365$ days.)</p>
+
+<div class="callout intuition">
+  <p>The trap is thinking about <em>your</em> birthday. A collision can happen between <em>any pair</em>, and the number of pairs grows like $n^2$: with 23 people there are $\binom{23}{2}=253$ pairs. Each pair matches with probability $1/365$, so the expected number of matching pairs is $253/365\approx 0.69$. That is already close to 1, so a coin-flip chance of at least one match is not surprising.</p>
+</div>
+
+<p><strong>Solution.</strong> "At least one collision" is messy, but its complement "all birthdays different" is easy. Seat people one at a time. Each new person must avoid all the birthdays already taken:</p>
+$$P(\text{collision}) = 1 - P(\text{all unique}),$$
+$$P(\text{all unique})=\frac{d}{d}\cdot\frac{d-1}{d}\cdot\frac{d-2}{d}\cdots\frac{d-n+1}{d}=\frac{d!}{(d-n)!\, d^n}.$$
+<p>Plugging in $d=365$: $n=22$ gives 47.6%, and $n=23$ gives <strong>50.7%</strong>. So the answer is <strong>23</strong>.</p>
+
+<div class="callout key">
+  <p>Using $1-x\approx e^{-x}$ on each factor, $\prod_{i=0}^{n-1}\big(1-\tfrac id\big)\approx e^{-\sum i/d}=e^{-n(n-1)/(2d)}$, so</p>
+  $$P(\text{collision})\approx 1-e^{-n(n-1)/(2d)}.$$
+  <p>Setting this to $\tfrac12$ gives $n\approx\sqrt{2d\ln 2}\approx 1.18\sqrt d$. Collisions show up after about $\sqrt d$ draws, <strong>not</strong> $d/2$. For $d=365$ this predicts $22.5$.</p>
+</div>
+
+<div class="widget" id="w-bday">
+  <div class="widget-title">Fill the room</div>
+  <div class="widget-desc">Drag $n$ to move along the exact curve (solid) and the $e^{-n(n-1)/2d}$ approximation (dashed). Click <b>New room</b> to give $n$ random people birthdays on a 365-day calendar. Days with two or more people light up in pink. <b>Simulate 2,000 rooms</b> checks the curve empirically.</div>
+  <div class="controls" id="bd-ctl"></div>
+  <div class="chart" id="bd-chart"></div>
+  <div class="chart pz-svg" id="bd-cal"></div>
+  <div class="pz-status" id="bd-status"></div>
+  <div class="readout" id="bd-read"></div>
+</div>
+
+<div class="callout warn">
+  <p>"Someone shares <em>my</em> birthday" is a different question. That probability is $1-(364/365)^{n-1}$, which needs $n\approx 254$ people to reach 50%. Read the question carefully.</p>
+</div>
+
+<div class="callout tip">
+  <p>The same math is behind <strong>hash collisions</strong>, where a $b$-bit hash collides after about $2^{b/2}$ items (the "birthday attack"), and behind estimating population size by counting repeats. Common follow-ups: the expected number of shared pairs is $\binom n2/d$ (by <a href="problems.html#counting-in-expectation">linearity</a>), and the expected number of people until the first repeat is about $\sqrt{\pi d/2}\approx 24.6$.</p>
+</div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">With $d$ equally likely values, roughly how many draws until you probably see a repeat if $d$ is multiplied by 100?</div>
+  <ul><li>100× more draws</li><li>10× more draws</li><li>About the same</li><li>$\log 100$ more draws</li></ul>
+  <div class="explain">The threshold scales like $\sqrt d$, so 100× more values needs only $\sqrt{100}=10$× more draws.</div>
+</div>
+
+<!-- ===================================================== GAMBLER'S RUIN -->
+<h2 id="gambler-s-ruin">Gambler's ruin</h2>
+<p><strong>Problem.</strong> You start with $a$ dollars. Each round you win 1 dollar with probability $p$ and lose 1 dollar with probability $q=1-p$. You stop when you reach $N$ dollars (you win) or 0 dollars (you're ruined). What is the probability that you reach $N$?</p>
+
+<div class="callout intuition">
+  <p>This is a <a href="#random-walk">random walk</a> with absorbing barriers at $0$ and $N$. In a fair game your expected wealth never changes, so the only way to "average out" to your starting $a$ is to hit $N$ with probability $a/N$. If the game is even slightly unfair, the drift wins over long games and ruin becomes almost certain, especially when $N$ is large.</p>
+</div>
+
+<p><strong>Setup (first-step analysis).</strong> Let $P_i$ be the probability of reaching $N$ starting from $i$ dollars. Condition on the first round:</p>
+$$P_i = p\,P_{i+1} + q\,P_{i-1}\quad(0\lt i\lt N),\qquad P_0=0,\ P_N=1.$$
+<p>This is a second-order linear recurrence with two boundary conditions. See <a href="problems.html#first-step-analysis">first-step analysis</a> and <a href="markov.html#absorption">absorbing Markov chains</a> for the general pattern.</p>
+
+<div class="callout fix">
+  <p>The original notes switch between $P_i$ and $q_i$ for the same quantity, and write the boundary condition as "$q_i=0$" instead of $P_0=0$. Its dollar amounts (written with a literal dollar sign right before the math) also render as broken TeX. Here $P_i$ is the win probability throughout, $q=1-p$ is the loss probability, and amounts are written in words.</p>
+</div>
+
+<h3>Fair game ($p=\tfrac12$): $P_a=a/N$</h3>
+<p><strong>Approach 1: expected value at the stopping time.</strong> Let $T$ be the time you stop and $W_T$ your wealth then. Each bet has zero expected gain, so $\E[W_T]=a$. But $W_T$ is either $N$ (with probability $P_a$) or $0$, so</p>
+$$\E[W_T]=P_a\cdot N + (1-P_a)\cdot 0 = P_a N \;\Longrightarrow\; P_a=\frac aN.$$
+
+<p><strong>Approach 2: solve the recurrence.</strong></p>
+$$P_i=\tfrac12P_{i-1}+\tfrac12P_{i+1}\;\Longrightarrow\;P_{i+1}-P_i=P_i-P_{i-1}.$$
+<p>All consecutive differences are equal, so $P_i$ is a linear function of $i$. With $P_0=0$ and $P_N=1$ we get $P_i=i/N$.</p>
+
+<div class="callout key">
+  <p><strong>Martingale.</strong> A sequence $M_0,M_1,\dots$ is a martingale if, given the whole past, the next value is expected to equal the current one:</p>
+  $$\E[M_{n+1}\mid M_0,\dots,M_n]=M_n.$$
+  <p>Taking expectations gives $\E[M_0]=\E[M_1]=\cdots$. A fair gambler's wealth is the classic example. The <strong>optional stopping theorem</strong> says $\E[M_T]=\E[M_0]$ at a stopping time $T$, provided $T$ is well-behaved (for example bounded, or bounded increments with $\E[T]<\infty$). That is exactly what Approach 1 used.</p>
+</div>
+
+<div class="callout fix">
+  <p>The original defines a martingale only as "$\E[M_1]=\cdots=\E[M_n]$". That's a <em>consequence</em> of being a martingale, not the definition. For example, $M_n=(-1)^n Z$ with $Z\sim\N(0,1)$ has constant mean 0 but is not a martingale. The conditional definition above is the correct one.</p>
+</div>
+
+<p><strong>Expected duration.</strong> In the fair game the expected number of rounds starting from $i$ is $h_i=i(N-i)$. It is tricky to derive, but easy to verify. First-step analysis gives $h_i=1+\tfrac12h_{i-1}+\tfrac12h_{i+1}$ with $h_0=h_N=0$, and</p>
+$$1+\tfrac12\big[(i-1)(N-i+1)+(i+1)(N-i-1)\big]=1+\tfrac12\big[2i(N-i)-2\big]=i(N-i).\ \checkmark$$
+
+<h3>Unfair game ($p\ne\tfrac12$)</h3>
+<div class="callout key">
+  $$P_a=\frac{1-(q/p)^a}{1-(q/p)^N},\qquad \E[T]=\frac{a}{q-p}-\frac{N}{q-p}\cdot\frac{1-(q/p)^a}{1-(q/p)^N}.$$
+</div>
+
+<details><summary>Proof: solve the recurrence with a characteristic equation</summary>
+  <p>Try $P_i=x^i$ in $P_i=pP_{i+1}+qP_{i-1}$: $\;px^2-x+q=0$, which has roots $x=1$ and $x=q/p$. The general solution is $P_i=A+B(q/p)^i$. Then $P_0=0$ gives $A=-B$, and $P_N=1$ gives $B=-1/(1-(q/p)^N)$, so</p>
+  $$P_i=\frac{1-(q/p)^i}{1-(q/p)^N}.$$
+  <p>Martingale alternative: $(q/p)^{W_n}$ is a martingale, because $\E[(q/p)^{W_{n+1}}\mid W_n]=(q/p)^{W_n}\big(p\cdot\tfrac qp+q\cdot\tfrac pq\big)=(q/p)^{W_n}$. Optional stopping then gives $(q/p)^a=P_a(q/p)^N+(1-P_a)$, which is the same answer.</p>
+  <p>For the duration, $W_n-n(p-q)$ is a martingale, so $a=\E[W_T]-(p-q)\E[T]=NP_a-(p-q)\E[T]$. Solving for $\E[T]$ gives the formula above.</p>
+</details>
+
+<div class="widget" id="w-gr">
+  <div class="widget-title">Play the gambler</div>
+  <div class="widget-desc">Each path is one game: wealth over time until it hits $0$ (ruin) or $N$ (win). <b>Play 1 game</b> animates a single path. <b>Run 2,000 games</b> compares the empirical win rate and average duration with the formulas. Try $p=0.49$ with $N=40$: a 1% edge for the house is brutal. The lower plot shows $P_a$ for every starting point, with your empirical estimate as a dot.</div>
+  <div class="controls" id="gr-ctl"></div>
+  <div class="controls" id="gr-btn"></div>
+  <div class="chart" id="gr-chart"></div>
+  <div class="chart" id="gr-curve"></div>
+  <div class="readout" id="gr-read"></div>
+</div>
+
+<div class="callout tip">
+  <p>Follow-ups to expect: (1) A symmetric walk starting at 0 needs on average $N^2$ steps to hit $\pm N$. That's gambler's ruin with $a=N$ on $[0,2N]$, so $a(2N-a)=N^2$. (2) Against an infinitely rich casino ($N\to\infty$) with $p\le\tfrac12$ you are ruined with probability 1. With $p>\tfrac12$ you survive forever with probability $1-q/p$.</p>
+</div>
+
+<div class="quiz" data-answer="2">
+  <div class="q">Fair game, you start with 10 dollars and stop at 0 or 30 dollars. What are the win probability and expected number of rounds?</div>
+  <ul><li>$1/2$ and $300$</li><li>$1/3$ and $100$</li><li>$1/3$ and $200$</li><li>$1/3$ and $300$</li></ul>
+  <div class="explain">$P=a/N=10/30=1/3$ and $\E[T]=a(N-a)=10\cdot 20=200$.</div>
+</div>
+
+<!-- ===================================================== RANDOM WALK -->
+<h2 id="random-walk">Random walk</h2>
+<p><strong>Setup.</strong> The simple symmetric random walk is $S_n=X_1+\cdots+X_n$, where each step $X_i=\pm1$ with equal probability, independently.</p>
+
+<div class="facts">
+  <div class="fact"><div class="label">Mean</div><div class="val">$\E[S_n]=n\E[X_i]=0$</div></div>
+  <div class="fact"><div class="label">Variance</div><div class="val">$\Var(S_n)=n$</div></div>
+  <div class="fact"><div class="label">Typical distance</div><div class="val">$\sim\sqrt n$</div></div>
+</div>
+
+<p>Each step has $\Var(X_i)=\E[X_i^2]-(\E[X_i])^2=1-0=1$. The steps are independent, so variances add:</p>
+$$\Var(S_n)=\sum_{i=1}^n\Var(X_i)=n.$$
+<p>So the typical distance from the origin, measured by the standard deviation, grows like $\sqrt n$, not $n$. By the CLT, $S_n/\sqrt n\to\N(0,1)$, and so about 68% of walks end within $\pm\sqrt n$.</p>
+
+<div class="callout intuition">
+  <p>Steps cancel each other out. After 10,000 steps you are typically only about 100 steps from home. Walking 4× as long only doubles your typical distance.</p>
+</div>
+
+<p><strong>Biased walk.</strong> If $X_i=+1$ with probability $p$ and $-1$ otherwise,</p>
+$$\E[S_n]=n\big(p\cdot1+(1-p)(-1)\big)=n(2p-1),\qquad \Var(S_n)=4np(1-p).$$
+<p>The drift grows like $n$ but the noise only like $\sqrt n$, so any bias eventually dominates. That is the reason the unfair gambler is doomed.</p>
+
+<div class="widget" id="w-rw">
+  <div class="widget-title">A cloud of random walks</div>
+  <div class="widget-desc">Each faint line is one walk. The shaded band is mean ± 1 sd, and the dashed lines are ± 2 sd, which for $p=\tfrac12$ is $\pm\sqrt n$ and $\pm2\sqrt n$. Move $p$ away from $0.5$ to see drift overtake the noise.</div>
+  <div class="controls" id="rw-ctl"></div>
+  <div class="chart" id="rw-chart"></div>
+  <div class="readout" id="rw-read"></div>
+</div>
+
+<div class="callout tip">
+  <p>Facts worth knowing: $\E|S_n|\approx\sqrt{2n/\pi}\approx0.8\sqrt n$. The 1-D and 2-D symmetric walks return to the origin with probability 1 (they are <em>recurrent</em>), while in 3-D the return probability is only about 34%. Even though returning is certain in 1-D, the <em>expected</em> time to return is infinite.</p>
+</div>
+
+<!-- ===================================================== COUPON COLLECTOR -->
+<h2 id="coupon-collector">Coupon collector</h2>
+<p><strong>Problem.</strong> There are $n$ types of coupons. Each cereal box contains one coupon chosen uniformly at random. On average, how many boxes do you buy to collect all $n$ types?</p>
+
+<div class="callout intuition">
+  <p>The first few coupons are easy because almost every box gives you something new. The last coupon is painful: each box has only a $1/n$ chance of being the missing one, so you wait $n$ boxes on average just for it. Most of the time is spent at the end.</p>
+</div>
+
+<p><strong>Solution: split the wait into phases.</strong> Phase $k$ (for $k=0,1,\dots,n-1$) is the stretch during which you have exactly $k$ distinct types. Each box is new with probability $\frac{n-k}{n}$, so the phase length is geometric:</p>
+$$X_k\sim\Geom\!\Big(\frac{n-k}{n}\Big),\qquad \E[X_k]=\frac{n}{n-k}.$$
+<p>By linearity of expectation, the total time $X=\sum_k X_k$ has</p>
+$$\E[X]=\sum_{k=0}^{n-1}\frac{n}{n-k}=n\sum_{j=1}^n\frac1j=n\,H_n,$$
+<p>where $H_n=1+\tfrac12+\tfrac13+\cdots+\tfrac1n\approx\ln n+0.577$ is the $n$-th <strong>harmonic number</strong>. The final phase alone takes $n$ boxes in expectation.</p>
+
+<div class="facts">
+  <div class="fact"><div class="label">Mean</div><div class="val">$nH_n\approx n\ln n+0.577n$</div></div>
+  <div class="fact"><div class="label">Variance</div><div class="val">$\sum_k\frac{1-p_k}{p_k^2}\le\frac{\pi^2}{6}n^2$</div></div>
+  <div class="fact"><div class="label">Examples</div><div class="val">$n=6$: 14.7, $n=50$: 225</div></div>
+</div>
+
+<div class="widget" id="w-cc">
+  <div class="widget-title">Collect them all</div>
+  <div class="widget-desc">Open boxes one at a time or press <b>Auto</b>. The phase bar shows how long each phase lasted: phase $k$ is the wait for the $(k+1)$-th new type. The outlined boxes show the expected lengths $n/(n-k)$, and you can see the last few phases dominate. <b>Run 2,000 collections</b> builds a histogram of the total.</div>
+  <div class="controls" id="cc-ctl"></div>
+  <div class="chart pz-svg" id="cc-cards"></div>
+  <div class="chart pz-svg" id="cc-phase"></div>
+  <div class="chart" id="cc-hist"></div>
+  <div class="readout" id="cc-read"></div>
+</div>
+
+<div class="chart" id="cc-growth"></div>
+<p class="small muted">The plot above shows $nH_n$ against $n\ln n$ and $n$. The gap $nH_n-n\ln n\approx0.577n$ grows linearly, which is small next to $n\ln n$. That is why the answer is often quoted as "$\Theta(n\log n)$".</p>
+
+<div class="callout tip">
+  <p>Variants you may get: (1) the expected number of <em>distinct</em> types after $m$ boxes is $n\big(1-(1-1/n)^m\big)$, by indicators. (2) To collect only half the types takes about $n\ln2\approx0.69n$ boxes, while the second half takes about $n\ln(n/2)$. (3) The expected wait to see all 6 faces of a die is $6H_6=14.7$ rolls.</p>
+</div>
+
+<!-- ===================================================== INFORMATION-THEORETIC -->
+<h2 id="information-theoretic-puzzles">Information-theoretic puzzles</h2>
+<p><strong>The principle: count the information.</strong> If you need to tell apart $k$ possibilities and each test has $m$ possible outcomes, then $t$ tests can produce at most $m^t$ distinct outcome sequences. You need $m^t\ge k$, so</p>
+$$t\ \ge\ \lceil\log_m k\rceil.$$
+<p>This is a <strong>lower bound</strong>. Whether some strategy actually reaches it depends on the constraints of the problem. To reach it, every test must split the remaining possibilities into $m$ groups that are as equal as possible.</p>
+
+<p><strong>Classic: 9 coins, one is heavier, you have a balance and 2 weighings.</strong> A balance has 3 outcomes (left heavy, right heavy, balanced), and $\lceil\log_3 9\rceil=2$, so 2 weighings might be enough. They are:</p>
+<ol>
+  <li>Split into 3 groups of 3 and weigh group A against group B.
+    <ul>
+      <li>Left side heavy → the counterfeit is in A.</li>
+      <li>Right side heavy → the counterfeit is in B.</li>
+      <li>Balanced → the counterfeit is in the left-out group C.</li>
+    </ul></li>
+  <li>Take the 3 suspects and weigh one against another. Same logic: the heavier one is fake, or if they balance it's the third coin.</li>
+</ol>
+
+<div class="callout intuition">
+  <p>Weighing 4 vs 4 feels like it uses "more coins", but it wastes the third outcome: "balanced" then only covers 1 coin, while each tipped outcome leaves 4. Good tests split the possibilities into three <em>equal</em> thirds. With $3^k$ coins you need exactly $k$ weighings.</p>
+</div>
+
+<div class="widget" id="w-coins">
+  <div class="widget-title">The balance scale</div>
+  <div class="widget-desc">One coin is secretly heavy. Click a coin to cycle it between <b>left pan</b> → <b>right pan</b> → <b>off</b>, then press <b>Weigh</b>. Coins ruled out by the results so far fade out. The goal is to get down to one candidate in $\lceil\log_3 k\rceil$ weighings. Stuck? <b>Optimal next weighing</b> sets up the ternary split for you.</div>
+  <div class="controls" id="cn-ctl"></div>
+  <div class="chart pz-svg" id="cn-scale"></div>
+  <div class="chart pz-svg" id="cn-coins"></div>
+  <div class="pz-status" id="cn-status"></div>
+  <div class="hist-list" id="cn-hist"></div>
+</div>
+
+<div class="callout tip">
+  <p>Famous follow-ups: (1) <strong>12 coins, one is fake, heavier <em>or</em> lighter, 3 weighings.</strong> There are $24$ possibilities and $3^3=27\ge24$, so it's possible in principle, and a careful strategy achieves it. (2) <strong>1000 wine bottles, one poisoned, 10 test strips</strong> (each strip says yes/no): $2^{10}=1024\ge1000$. Label bottles in binary and strip $j$ tests every bottle whose $j$-th bit is 1. (3) <strong>Twenty questions</strong> with yes/no answers distinguishes $2^{20}\approx10^6$ objects.</p>
+</div>
+
+<div class="quiz" data-answer="2">
+  <div class="q">You have 30 coins, one heavier. What is the minimum number of weighings that <em>guarantees</em> finding it?</div>
+  <ul><li>2</li><li>3</li><li>4</li><li>5</li></ul>
+  <div class="explain">$3^3=27<30\le81=3^4$, so 3 weighings can't distinguish 30 cases. With 4 weighings it works: split $10/10/10$, then $3/3/4$, then $1/1/2$ or $1/1/1$, then $1/1$.</div>
+</div>
+
+<!-- ===================================================== RESERVOIR -->
+<h2 id="reservoir-sampling">Reservoir sampling</h2>
+<p><strong>Problem.</strong> Items $x_1,x_2,x_3,\dots$ arrive one at a time in a stream. When the stream ends, return one item chosen uniformly at random from everything seen. You don't know the length $n$ ahead of time, and you can only store one item.</p>
+
+<div class="callout key">
+  <p><strong>Algorithm.</strong> Keep the first item: $s=x_1$. For each later item $x_n$ ($n=2,3,4,\dots$), replace $s$ with $x_n$ with probability $1/n$.</p>
+</div>
+
+<div class="callout intuition">
+  <p>The newest item must be the answer with probability exactly $1/n$, so that's the replacement chance. The older items each had a $1/(n-1)$ share, and that shrinks by the factor $(n-1)/n$ that the new item doesn't steal their spot. The two effects cancel exactly, so everyone stays at $1/n$.</p>
+</div>
+
+<details open><summary>Proof by induction</summary>
+  <p><strong>Claim:</strong> after processing $n$ items, each of $x_1,\dots,x_n$ is in $s$ with probability $1/n$.</p>
+  <p><strong>Base case</strong> ($n=1$): $s=x_1$ with probability $1=1/1$.</p>
+  <p><strong>Inductive step:</strong> when $x_n$ arrives there are two cases.</p>
+  <ul>
+    <li>$s=x_n$ (replace). This happens with probability $1/n$. ✓</li>
+    <li>$s=x_k$ for some $k\lt n$ (keep). This needs (1) $s=x_k$ after step $n-1$, which has probability $\frac1{n-1}$ by induction, and (2) we rejected $x_n$, which has probability $\frac{n-1}n$. These are independent, so
+    $$\frac1{n-1}\cdot\frac{n-1}{n}=\frac1n.\ \checkmark$$</li>
+  </ul>
+  <p>So every $x_k$ is in the reservoir with probability $1/n$ after $n$ steps.</p>
+</details>
+
+<div class="widget" id="w-res">
+  <div class="widget-title">Watch the reservoir</div>
+  <div class="widget-desc">Step through a stream. Each arriving item takes the reservoir with probability $1/n$, and the bars show that at every moment every item seen so far has the same chance of being held. <b>Run 10,000 streams</b> shows a histogram of which index ends up selected, and it comes out flat.</div>
+  <div class="controls" id="rs-ctl"></div>
+  <div class="chart pz-svg" id="rs-stream"></div>
+  <div class="pz-status" id="rs-status"></div>
+  <div class="chart" id="rs-chart"></div>
+  <div class="readout" id="rs-read"></div>
+</div>
+
+<div class="callout tip">
+  <p><strong>Follow-up: sample $k$ items</strong> (Algorithm R). Keep the first $k$ items. For item $n>k$, with probability $k/n$ it replaces a uniformly random slot in the reservoir. The same induction shows each item ends up in the sample with probability $k/n$. Another neat variant: give each item a random key $u_i\sim\Unif(0,1)$ and keep the $k$ smallest keys. This also parallelizes across machines.</p>
+</div>
+
+<!-- ===================================================== SECRETARY -->
+<h2 id="secretary-problem">Secretary problem</h2>
+<p><strong>Problem.</strong> $n$ candidates are interviewed in random order. After each interview you must immediately hire or reject that candidate, and you can't go back. You want to maximize the probability of hiring the <em>best</em> one. Use the strategy: <em>reject the first $k$ candidates, then hire the next one who is better than all of the first $k$</em> (if nobody is, you're stuck with the last). What is the optimal $k$?</p>
+
+<div class="callout intuition">
+  <p>There's a tension. Look too briefly and your benchmark is weak, so you hire a mediocre early candidate. Look too long and the best has probably already gone by. The sweet spot is to look at about 37% ($1/e$) of candidates, and you then hire the best one about 37% of the time, no matter how large $n$ is.</p>
+</div>
+
+<p><strong>Solution.</strong> Let $P(k)$ be the probability that threshold $k$ hires the best, and let $b$ be the position of the best candidate. The strategy succeeds exactly when:</p>
+<ol>
+  <li>$b>k$: the best candidate comes after the first $k$, and</li>
+  <li>the best among positions $1,\dots,b-1$ is in $1,\dots,k$. Otherwise that candidate beats the benchmark and is hired before we reach $b$.</li>
+</ol>
+$$\begin{aligned}
+P(k)&=\sum_{b=k+1}^n P(\text{best at }b)\,P(\text{best of first }b-1\text{ is among first }k)\\
+&=\sum_{b=k+1}^n\frac1n\cdot\frac{k}{b-1}
+=\frac kn\sum_{i=k}^{n-1}\frac1i
+=\frac kn\big(H_{n-1}-H_{k-1}\big)\\
+&\approx\frac kn\ln\frac nk \qquad(H_m\approx\ln m)\\
+&=-r\ln r \qquad\text{where } r=k/n.
+\end{aligned}$$
+<p>Maximize: $\frac{d}{dr}(-r\ln r)=-\ln r-1=0$ gives $\ln r=-1$, so $r=1/e$ and $k\approx n/e$. The success probability at the optimum is $-\frac1e\ln\frac1e=\frac1e\approx36.8\%$.</p>
+
+<div class="widget" id="w-sec">
+  <div class="widget-title">Hiring simulator</div>
+  <div class="widget-desc">The curve is the exact $P(k)$, with a dot at your chosen $k$. In the bar strip each bar is a candidate in interview order (taller = better). The shaded region is the "look" phase, the outlined bar is the true best, and the filled-in bar is who you hired. <b>Simulate 10,000</b> checks $P(k)$ empirically.</div>
+  <div class="controls" id="sc-ctl"></div>
+  <div class="chart" id="sc-chart"></div>
+  <div class="chart pz-svg" id="sc-run"></div>
+  <div class="pz-status" id="sc-status"></div>
+  <div class="readout" id="sc-read"></div>
+</div>
+
+<div class="callout tip">
+  <p>Good things to say in an interview: the cutoff rule is actually optimal among <em>all</em> strategies, not only threshold ones. The answer $1/e$ doesn't depend on $n$. If instead you want to maximize the <em>expected rank</em> of the person hired, the optimal look phase is much shorter, about $\sqrt n$.</p>
+</div>
+
+<!-- ===================================================== MONTY HALL -->
+<h2 id="monty-hall">Monty Hall</h2>
+<p><strong>Problem.</strong> There are 3 doors: a car behind one and goats behind the other two. You pick a door. Monty, who <em>knows</em> where the car is, opens a different door that has a goat. He then offers to let you switch to the remaining closed door. Should you?</p>
+
+<div class="callout intuition">
+  <p><strong>Yes. Switching wins with probability $2/3$.</strong> Your first pick is right with probability $1/3$, and nothing Monty does changes that, because he can always open a goat door. So "stay" wins $1/3$ of the time. "Switch" wins exactly when your first pick was wrong, which is $2/3$ of the time: Monty has removed the other goat, so the remaining door must hold the car.</p>
+  <p>To make it obvious, imagine 100 doors. You pick one, and Monty opens 98 goat doors, leaving yours and door #73. Would you stick with your 1-in-100 guess?</p>
+</div>
+
+<div class="widget" id="w-mh">
+  <div class="widget-title">Let's make a deal</div>
+  <div class="widget-desc">Pick a door, Monty opens goat doors, then click your door to <b>stay</b> or another closed door to <b>switch</b>. The tallies keep score. Use <b>Auto-play 1,000</b> to let the computer play many rounds with each strategy. Try $n$ doors and the "Monty opens only 1 door" variant.</div>
+  <div class="controls" id="mh-ctl"></div>
+  <div class="doors" id="mh-doors"></div>
+  <div class="pz-status" id="mh-status"></div>
+  <div class="controls" id="mh-btn"></div>
+  <div class="chart" id="mh-chart"></div>
+  <div class="readout" id="mh-read"></div>
+</div>
+
+<h3>General $n$ doors, by Bayes</h3>
+<p>Let $A\in\{1,\dots,n\}$ be the car's location and $B$ be the set of doors Monty opens. Without loss of generality we pick door $c$. We want $P(A=j\mid B)$ for each unopened door $j$:</p>
+$$P(A=j\mid B)=\frac{P(B\mid A=j)\,P(A=j)}{P(B)}.$$
+<p>The prior $P(A=j)=1/n$ is the same for every $j$ and the denominator is shared, so comparing posteriors reduces to comparing the likelihoods $P(B\mid A=j)$: "how likely is it that Monty would open exactly these doors, if the car were behind $j$?"</p>
+
+<div class="callout fix">
+  <p>The original notes use a door index $t$ that is never defined. It is just our chosen door $c$, and it is written as $c$ below. Case 2 in the original also stops at "proportional to" without normalizing; the normalized posteriors are added.</p>
+</div>
+
+<p><strong>Case 1: Monty opens $n-2$ doors</strong>, leaving our door $c$ and one other door $r$.</p>
+<ul>
+  <li>$P(B\mid A=c)=\frac1{n-1}$: if our door has the car, Monty can leave any of the other $n-1$ doors closed.</li>
+  <li>$P(B\mid A=r)=1$: if $r$ has the car, Monty is forced to leave exactly $r$ closed.</li>
+  <li>$P(B\mid A=k)=0$ for every opened door $k\in B$.</li>
+</ul>
+<p>So the posteriors are proportional to $\frac1{n-1}$ and $1$. Normalizing gives</p>
+$$P(A=c\mid B)=\frac1n,\qquad P(A=r\mid B)=\frac{n-1}{n}.$$
+
+<p><strong>Case 2: Monty opens only 1 door</strong>, $B=\{k\}$, leaving $n-2$ unchosen doors closed. Let $r$ be any one of them.</p>
+<ul>
+  <li>$P(B\mid A=c)=\frac1{n-1}$: Monty can open any of the $n-1$ other doors.</li>
+  <li>$P(B\mid A=r)=\frac1{n-2}$: Monty can open any door except $c$ and $r$.</li>
+  <li>$P(B\mid A=k)=0$.</li>
+</ul>
+<p>The unnormalized weights are $\frac1{n-1}$ for our door and $\frac1{n-2}$ for each of the $n-2$ others. Their sum is $\frac1{n-1}+1=\frac{n}{n-1}$, so</p>
+$$P(A=c\mid B)=\frac1n,\qquad P(A=r\mid B)=\frac{n-1}{n(n-2)}\ \text{ for each remaining door } r.$$
+<p>Each remaining door is slightly more likely than our door, since $\frac{n-1}{n-2}>1$. So switching to any of them helps, though less dramatically. For $n=3$ the two cases coincide and give $2/3$.</p>
+
+<div class="callout key">
+  <p><strong>General rule:</strong> your door stays at $1/n$. The probability $k/n$ held by the $k$ opened doors gets spread evenly over the $n-k-1$ unopened, unchosen doors, so each ends up with $\frac{n-1}{n(n-k-1)}$.</p>
+</div>
+
+<div class="callout warn">
+  <p>The answer depends on Monty's <em>behavior</em>, not just on what you see. If Monty opens a door <strong>at random</strong> and it happens to show a goat, then switching and staying are both $1/2$. The $2/3$ comes from Monty <em>knowing</em> and <em>avoiding</em> the car, which is what makes his choice informative. Always state the host's rule.</p>
+</div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">10 doors. You pick one, and Monty (who knows) opens 1 goat door. You switch to one of the 8 other closed doors. What's your win probability?</div>
+  <ul><li>$1/10$</li><li>$9/80$</li><li>$1/8$</li><li>$1/9$</li></ul>
+  <div class="explain">Case 2 with $n=10$: $\frac{n-1}{n(n-2)}=\frac{9}{80}=0.1125$. That's a bit better than staying ($1/10$).</div>
+</div>
+
+<!-- ===================================================== LONGEST RUN -->
+<h2 id="longest-run-of-heads">Longest run of heads</h2>
+<p><strong>Problem.</strong> Flip a fair coin $n$ times and let $L_n$ be the longest run of consecutive heads. How big is $L_n$ typically?</p>
+<p>There is no clean closed form for $\E[L_n]$, but a well-known approximation is</p>
+$$\E[L_n]\approx\log_2 n.$$
+
+<div class="callout intuition">
+  <p>A specific stretch of $\ell$ flips is all heads with probability $2^{-\ell}$. There are about $n$ places a run could start, so the expected number of runs of length $\ell$ is roughly $n\,2^{-\ell}$ (more carefully $n2^{-\ell-1}$, since a run also has to be preceded by a tail). Runs of length $\ell$ stop being expected once $n2^{-\ell}\approx1$, which is at $\ell\approx\log_2 n$. Doubling $n$ adds only <strong>one</strong> to the longest run.</p>
+</div>
+
+<div class="callout tip">
+  <p>A sharper approximation is $\E[L_n]\approx\log_2 n-\tfrac23$, and the standard deviation stays near $1.87$ for <em>every</em> $n$, so the distribution just slides right as $n$ grows. A practical use: people faking "random" coin sequences avoid long runs. In 200 real flips a run of 6 or 7 heads is completely normal.</p>
+</div>
+
+<div class="widget" id="w-lr">
+  <div class="widget-title">How long is the longest streak?</div>
+  <div class="widget-desc">The strip is one sequence of $n$ flips (heads in blue) with the longest head-run highlighted. The histogram is the distribution of $L_n$ over thousands of sequences, with $\log_2 n$ marked. Double $n$ and watch the whole histogram shift by about 1.</div>
+  <div class="controls" id="lr-ctl"></div>
+  <div class="chart pz-svg" id="lr-strip"></div>
+  <div class="chart" id="lr-chart"></div>
+  <div class="readout" id="lr-read"></div>
+</div>
+
+<!-- ===================================================== BALLS INTO BINS -->
+<h2 id="balls-into-bins">Throwing balls into bins</h2>
+<p><strong>Problem.</strong> Throw $m$ balls independently and uniformly into $m$ bins. What fraction of bins is empty? Has exactly one ball? Has two or more?</p>
+<p><strong>Answer:</strong> about <strong>37%</strong> empty, <strong>37%</strong> exactly one, and the remaining <strong>26%</strong> get two or more.</p>
+
+<p><strong>Solution (indicators).</strong> Fix a bin. Each ball misses it with probability $1-\frac1m$, so</p>
+$$P(\text{empty})=\Big(1-\frac1m\Big)^m\to e^{-1}\approx0.368,$$
+$$P(\text{exactly one})=m\cdot\frac1m\Big(1-\frac1m\Big)^{m-1}\to e^{-1}\approx0.368,$$
+$$P(\ge 2)\to1-\frac2e\approx0.264.$$
+<p>By linearity, the expected <em>fraction</em> of empty bins is the same $(1-1/m)^m$, even though the bins are dependent. The load of one bin is $\Bin(m,1/m)\approx\Pois(1)$, and these three numbers are just $P(0), P(1), P(\ge2)$ for a $\Pois(1)$. See the <a href="distributions.html#poisson">Poisson limit</a>.</p>
+
+<div class="widget" id="w-bb">
+  <div class="widget-title">Drop the balls</div>
+  <div class="widget-desc">Balls fall one at a time into $m$ bins. Bins are colored by their final load: empty (gray), one (blue), or two or more (orange). The bar chart compares the observed fractions with $1/e,\ 1/e,\ 1-2/e$.</div>
+  <div class="controls" id="bb-ctl"></div>
+  <div class="chart pz-svg" id="bb-bins"></div>
+  <div class="chart" id="bb-chart"></div>
+  <div class="readout" id="bb-read"></div>
+</div>
+
+<p><strong>Maximum load.</strong> The fullest bin holds about $\frac{\ln m}{\ln\ln m}$ balls with high probability. This grows very slowly, and the approximation is only accurate for astronomically large $m$. If each ball instead looks at <em>two</em> random bins and goes to the emptier one ("power of two choices"), the max load drops to about $\log_2\ln m$, which is exponentially better and is used in load balancers.</p>
+
+<div class="widget" id="w-maxload">
+  <div class="widget-title">Max load vs ln m / ln ln m</div>
+  <div class="widget-desc">For each $m$ (log scale), this throws $m$ balls into $m$ bins several times and plots the average maximum load. Compare one random choice with the "best of two" rule. Notice the simulated one-choice curve sits well above $\ln m/\ln\ln m$: that formula only gets the leading order right, and the correction terms fade extremely slowly.</div>
+  <div class="controls" id="ml-ctl"></div>
+  <div class="chart" id="ml-chart"></div>
+  <div class="legend" id="ml-leg"></div>
+</div>
+
+<div class="callout tip">
+  <p>Related facts: with $m$ balls into $n$ bins, the expected number of empty bins is $n(1-1/n)^m$, which is the same as the coupon-collector "distinct types" count. It takes about $n\ln n$ balls before no bin is empty, which is the <a href="#coupon-collector">coupon collector</a> again. The first collision happens after about $\sqrt n$ balls, which is the <a href="#birthday-problem">birthday problem</a> again. These three puzzles are really one.</p>
+</div>
+
+<!-- ===================================================== PATH COUNTING POINTER -->
+<h2 id="path-counting">Path counting</h2>
+<p>Lattice paths ("how many routes from $(0,0)$ to $(m,n)$ moving right/up?" Answer: $\binom{m+n}{m}$) are covered with their own interactive grid in <a href="combinatorics.html#path-counting">Combinatorics → Path counting</a>.</p>
+
+</div></main>
+<script src="assets/nav.js"></script>
+<script src="assets/puzzles.js"></script>
+</body>
+</html>

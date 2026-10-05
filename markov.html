@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Markov chains · Probability, visually</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="assets/lib.js"></script>
+  <style>
+    .mx { border-collapse: collapse; width: auto; margin: 4px 0; font-size: .9em; background: transparent; }
+    .mx th, .mx td { padding: 3px 6px; border: 1px solid var(--line); text-align: center; }
+    .mx input { width: 4.2em; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 2px 4px; font: inherit; font-size: .95em; text-align: right; }
+    .mx td.sum { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .mc-wrap { display: flex; flex-direction: column-reverse; align-items: center; gap: 6px; }
+    .mc-wrap #mc-graph { max-width: 540px; }
+    .eqs { overflow-x: auto; font-size: .92em; }
+    .graph-svg text { fill: var(--ink); font-family: inherit; }
+    .msg { font-size: .88em; color: var(--muted); margin-top: 4px; }
+  </style>
+</head>
+<body data-page="markov">
+<main><div class="content">
+
+<h1>🔁 Markov chains</h1>
+<p class="lede">A Markov chain is a process that forgets its past: where it goes next depends only on where it is now. That one assumption turns hard questions about long random processes into small systems of linear equations.</p>
+
+<h2 id="markov-property">The Markov property</h2>
+<p>A <strong>Markov chain</strong> is a sequence of random variables $X_0, X_1, X_2,\dots$ taking values in a state space $S$, such that the future depends on the past <em>only through the present</em>:</p>
+$$P(X_{t+1}=j \mid X_t=i,\ X_{t-1}=i_{t-1},\dots,X_0=i_0) \;=\; P(X_{t+1}=j\mid X_t=i).$$
+
+<div class="callout intuition">
+  <p>Picture a frog hopping between lily pads. When it decides where to jump, it looks only at the pad it is sitting on. It does not remember how it got there. If you know the current pad, the whole history is irrelevant.</p>
+</div>
+
+<p>Examples: a board game like Snakes &amp; Ladders (your next square depends only on your current square and the die), your bankroll in a betting game, a random walk on a graph, or the weather in a toy model ("sunny today → 80% sunny tomorrow").</p>
+
+<div class="callout tip">
+  <p><strong>Make the state big enough.</strong> Many puzzles become Markov once the state remembers a little more. For "expected flips until two heads in a row", the useful state is the <em>current run of heads</em>: 0, 1, or "done". For "expected flips until HTH", it's the longest suffix that matches a prefix of HTH. Choosing the right state is usually the whole trick.</p>
+</div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">You draw cards one at a time from a shuffled deck without replacement. Is "the value of the card just drawn" a Markov chain?</div>
+  <ul><li>Yes: the next card only depends on the current card</li><li>No: which cards are still in the deck depends on the whole history</li><li>Yes, because the deck is shuffled uniformly</li></ul>
+  <div class="explain">The probability that the next card is an ace depends on how many aces have <em>already</em> appeared, not just on the last card. To make it Markov, the state would need to be the set of cards remaining.</div>
+</div>
+
+<h2 id="transition-matrix">The transition matrix</h2>
+<p>For a finite state space $\{1,\dots,n\}$, the whole chain is described by an $n\times n$ <strong>transition matrix</strong>:</p>
+$$P_{ij}=P(X_{t+1}=j\mid X_t=i).$$
+<p>Row $i$ is "where can I go from $i$, and with what probability". So every row is a probability distribution: entries are $\ge 0$ and <strong>each row sums to 1</strong>. (Columns need not sum to anything in particular.)</p>
+
+<p>If $\pi_t$ is the <em>row vector</em> of probabilities of being in each state at time $t$, then one step of the chain is one matrix multiplication:</p>
+<div class="callout key">
+  $$\pi_{t+1}=\pi_t P \qquad\Longrightarrow\qquad \pi_t=\pi_0 P^t.$$
+</div>
+<details><summary>Why? (law of total probability)</summary>
+  <p>To be at $j$ at time $t+1$, you were at <em>some</em> state $i$ at time $t$ and then jumped $i\to j$:</p>
+  $$P(X_{t+1}=j)=\sum_i P(X_t=i)\,P(X_{t+1}=j\mid X_t=i)=\sum_i (\pi_t)_i\,P_{ij}=(\pi_tP)_j.$$
+  <p>That sum is exactly "row vector times column $j$ of $P$".</p>
+</details>
+
+<p><strong>Worked example.</strong> Weather: sunny (S) stays sunny with probability 0.8, rainy (R) stays rainy with probability 0.6.</p>
+$$P=\begin{pmatrix}0.8 & 0.2\\ 0.4 & 0.6\end{pmatrix},\qquad \pi_0=(1,\,0)\ \text{(sunny today)}$$
+$$\begin{aligned}\pi_1&=\pi_0P=(0.8,\ 0.2)\\ \pi_2&=\pi_1P=(0.8\cdot0.8+0.2\cdot0.4,\ \ 0.8\cdot 0.2+0.2\cdot 0.6)=(0.72,\ 0.28)\end{aligned}$$
+
+<div class="widget" id="w-chain">
+  <div class="widget-title">A 3-state chain you can edit</div>
+  <div class="widget-desc">Arrow thickness is proportional to the transition probability. Type any non-negative weights into the matrix: each row is automatically rescaled to sum to 1. Press <b>▶ Run</b> to watch a token hop around, and see how often it visits each state.</div>
+  <div class="controls" id="mc-ctl"></div>
+  <div class="mc-wrap">
+    <div id="mc-matrix"></div>
+    <div class="chart" id="mc-graph"></div>
+  </div>
+  <div class="readout" id="mc-read"></div>
+</div>
+
+<h2 id="stationary-distribution">Stationary distribution</h2>
+<p>A <strong>stationary distribution</strong> is a distribution that one step of the chain leaves unchanged:</p>
+<div class="callout key">$$\pi=\pi P,\qquad \sum_i\pi_i=1,\ \ \pi_i\ge 0.$$</div>
+<p>If you start the chain with $X_0\sim\pi$, then $X_1\sim\pi$, $X_2\sim\pi$, and so on forever. Individual states keep changing, but the <em>distribution</em> is in balance: the probability flowing into each state equals the probability flowing out.</p>
+
+<p>The headline theorem: for a chain that is</p>
+<ul>
+  <li><strong>finite</strong> (finitely many states),</li>
+  <li><strong>irreducible</strong> (every state can reach every other state), and</li>
+  <li><strong>aperiodic</strong> (it does not cycle with a fixed period, e.g. a self-loop anywhere is enough when irreducible),</li>
+</ul>
+<p>there is a <strong>unique</strong> stationary distribution, and $\pi_t\to\pi$ <em>no matter where you start</em>. Moreover, the long-run fraction of time spent in state $i$ equals $\pi_i$.</p>
+<div class="callout fix"><p>The original notes said this holds "under mild conditions". Those conditions are exactly: finite + irreducible + aperiodic. Irreducibility gives uniqueness, aperiodicity gives convergence of $\pi_t$. (Without aperiodicity the time-averages still converge to $\pi$; $\pi_t$ itself may oscillate.)</p></div>
+
+<h3>How to compute π</h3>
+<p>$\pi=\pi P$ is a linear system, but it is rank-deficient: one equation is redundant. Drop any one of them and replace it with the normalization $\sum_i\pi_i=1$.</p>
+<p><strong>Two-state formula.</strong> If $P=\begin{pmatrix}1-a & a\\ b & 1-b\end{pmatrix}$ then balancing flow between the two states, $\pi_1 a=\pi_2 b$, gives</p>
+$$\pi=\Big(\frac{b}{a+b},\ \frac{a}{a+b}\Big).$$
+<p>For the weather example, $a=0.2,\ b=0.4$, so $\pi=(2/3,\ 1/3)$: in the long run it is sunny two days out of three.</p>
+
+<div class="callout tip">
+  <p><strong>Random walk on a graph:</strong> if at each step you move to a uniformly random neighbor, then $\pi_i=\dfrac{\deg(i)}{2|E|}$. No equations needed. Busy intersections get visited more. On a regular graph (all degrees equal, e.g. a cycle) this is uniform: $\pi_i=1/n$.</p>
+</div>
+<details><summary>Proof of the degree formula</summary>
+  <p>Check $\pi P=\pi$: $(\pi P)_j=\sum_{i\sim j}\frac{\deg i}{2|E|}\cdot\frac1{\deg i}=\frac{\deg j}{2|E|}=\pi_j$. ✓ (Each neighbor $i$ of $j$ sends exactly $1/(2|E|)$ of probability to $j$.)</p>
+</details>
+
+<div class="widget" id="w-conv">
+  <div class="widget-title">Watching πₜ converge to π</div>
+  <div class="widget-desc">This uses the matrix from the widget above. <b>Left:</b> each line is $(\pi_t)_i$, the probability of being in state $i$ at time $t$, starting from the chosen state. Dashed lines are the stationary $\pi$ found by solving $\pi P=\pi$. <b>Right:</b> at the chosen time $t$, compare $\pi_t$, the stationary $\pi$, and the fraction of time a single long simulated run spent in each state. Try the <i>periodic</i> and <i>reducible</i> presets.</div>
+  <div class="controls" id="cv-ctl"></div>
+  <div class="twocol"><div class="chart" id="cv-lines"></div><div class="chart" id="cv-bars"></div></div>
+  <div id="cv-legend"></div>
+  <div class="readout" id="cv-read"></div>
+</div>
+
+<h2 id="return-time">Expected return time</h2>
+<p>Start at state $i$. How long, on average, until you come back to $i$?</p>
+<div class="callout key">$$\E[\text{return time to } i]=\frac{1}{\pi_i}.$$</div>
+<div class="callout intuition"><p>If you spend a fraction $\pi_i$ of all time steps at $i$, say $\pi_i=1/5$, then visits to $i$ happen about once every 5 steps on average. So the gap between consecutive visits is $1/\pi_i$. Rare states take long to come back to.</p></div>
+<details><summary>Proof sketch (renewal argument)</summary>
+  <p>Run the chain for a long time $T$ and let $V_T$ be the number of visits to $i$. Visits split the timeline into return-time "cycles" $R_1, R_2,\dots$ that are i.i.d. by the Markov property (each time you're at $i$, the future starts fresh). So $T\approx R_1+\dots+R_{V_T}\approx V_T\,\E[R]$. Divide by $T$: $1\approx \frac{V_T}{T}\,\E[R]\to \pi_i\,\E[R]$. Hence $\E[R]=1/\pi_i$. (This is Kac's lemma; it needs the chain to be irreducible and finite.)</p>
+</details>
+
+<div class="widget" id="w-return">
+  <div class="widget-title">Checking 1/πᵢ by simulation</div>
+  <div class="widget-desc">Again using the matrix above. We simulate 200,000 steps and record every gap between consecutive visits to each state. Bars are the simulated mean return time, dots are $1/\pi_i$. The histogram shows all return times to the selected state.</div>
+  <div class="controls" id="rt-ctl"></div>
+  <div class="twocol"><div class="chart" id="rt-bars"></div><div class="chart" id="rt-hist"></div></div>
+  <div class="readout" id="rt-read"></div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <div class="q">A knight starts in a corner of an empty chessboard and makes uniformly random legal moves. What is the expected number of moves until it returns to that corner? (The degrees of all 64 squares sum to 336.)</div>
+  <ul><li>64</li><li>84</li><li>168</li><li>336</li></ul>
+  <div class="explain">This is a random walk on the "knight graph", so $\pi_i=\deg(i)/\sum\deg=2/336$. A corner has degree 2. Return time is $1/\pi=336/2=168$.</div>
+</div>
+
+<h2 id="absorption">Absorption: hitting times and probabilities</h2>
+<p>An <strong>absorbing</strong> state is one you never leave ($P_{AA}=1$): "game over", "reached $N$ dollars", "saw HH". Two questions come up constantly:</p>
+<ol>
+  <li><strong>How long</strong> until we get absorbed? Let $h_i$ be the expected time to absorption starting from state $i$.</li>
+  <li><strong>Where</strong> do we end up? Let $q_i$ be the probability of being absorbed at a particular target $A$ starting from $i$.</li>
+</ol>
+<p>Both are solved by <a href="problems.html#first-step-analysis">first-step analysis</a>: condition on the first move, then use the Markov property to say "from there, it's the same problem starting from the new state".</p>
+
+<div class="facts">
+  <div class="fact"><div class="label">Expected time</div><div class="val">$h_i=1+\sum_j P_{ij}\,h_j$<br><span class="small muted">with $h_A=0$ at absorbing states</span></div></div>
+  <div class="fact"><div class="label">Absorption probability</div><div class="val">$q_i=\sum_j P_{ij}\,q_j$<br><span class="small muted">with $q_A=1$, and $q_B=0$ at other absorbing $B$</span></div></div>
+</div>
+<p class="small">The "$1+$" counts the step you just took. There is no "$1+$" in the probability equation because no time is being counted, only where you end up.</p>
+
+<h3>Recipe</h3>
+<ol>
+  <li>Write one equation per non-absorbing state, plus the boundary conditions.</li>
+  <li><strong>Small chain:</strong> just solve the linear system.</li>
+  <li><strong>Chain with structure</strong> (states $0,1,\dots,N$): guess a closed form, then verify it satisfies the equations and fit constants to the boundary conditions. To guess: compute small cases by hand, and think about the shape. E.g. $h_i$ must vanish at both ends and be largest in the middle → try a parabola.</li>
+</ol>
+
+<h3>Worked example: symmetric walk between two walls</h3>
+<p>Walk on $\{0,1,\dots,N\}$, stepping $\pm1$ with probability $\tfrac12$ each, absorbed at $0$ and $N$. This is <a href="puzzles.html#gambler-s-ruin">gambler's ruin</a> with a fair coin.</p>
+$$h_i=1+\tfrac12h_{i-1}+\tfrac12h_{i+1},\quad h_0=h_N=0 \qquad\Longrightarrow\qquad h_i=i(N-i).$$
+$$q_i=\tfrac12q_{i-1}+\tfrac12q_{i+1},\quad q_0=0,\ q_N=1 \qquad\Longrightarrow\qquad q_i=\frac iN.$$
+<details><summary>Verify $h_i=i(N-i)$ (the guess-and-check way)</summary>
+  <p>Boundary: $h_0=0\cdot N=0$ and $h_N=N\cdot 0=0$. ✓ Interior: plug in.</p>
+  $$1+\tfrac12(i-1)(N-i+1)+\tfrac12(i+1)(N-i-1)=1+\tfrac12\big[2i(N-i)-2\big]=i(N-i).\ ✓$$
+  <p><strong>How you'd guess it:</strong> rearranging gives $h_{i+1}-2h_i+h_{i-1}=-2$. A constant second difference means $h$ is a quadratic in $i$, and a quadratic vanishing at $0$ and $N$ is $c\,i(N-i)$; plugging in gives $c=1$.</p>
+  <p>For $q$: $q_{i+1}-q_i=q_i-q_{i-1}$, so all consecutive differences are equal, $q$ is linear, and the boundary conditions force $q_i=i/N$.</p>
+</details>
+
+<div class="widget" id="w-absorb">
+  <div class="widget-title">First-step analysis, solved live</div>
+  <div class="widget-desc">A walk on $0,\dots,N$ steps right with probability $p$ and left with $1-p$; both ends absorb. The equations below are built from the chain and solved with Gaussian elimination. Left: expected steps $h_i$. Right: probability $q_i$ of ending at $N$. Dots show the closed forms; <b>Simulate</b> runs 3,000 walks from each start.</div>
+  <div class="controls" id="ab-ctl"></div>
+  <div class="chart" id="ab-line" style="min-height:60px"></div>
+  <div class="eqs" id="ab-eqs"></div>
+  <div class="twocol"><div class="chart" id="ab-h"></div><div class="chart" id="ab-q"></div></div>
+  <div id="ab-legend"></div>
+  <div class="readout" id="ab-read"></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">Using first-step analysis with states "0 heads in a row", "1 head in a row", "HH (absorbed)", what is the expected number of fair coin flips until you see two heads in a row?</div>
+  <ul><li>4</li><li>6</li><li>8</li><li>3</li></ul>
+  <div class="explain">$h_0=1+\tfrac12h_1+\tfrac12h_0$ and $h_1=1+\tfrac12\cdot 0+\tfrac12h_0$. Substituting: $h_0=2+h_1=2+1+\tfrac12h_0\Rightarrow h_0=6$.</div>
+</div>
+
+<h2 id="symmetry-tricks">Symmetry tricks</h2>
+
+<h3>Collapse equivalent states</h3>
+<p>If several states "look the same" relative to the question, give them one shared unknown. On a <strong>cycle of $n$ nodes</strong>, the expected time to hit a target only depends on your <em>distance</em> $d$ to it, not on which node you're at. Reparameterize by distance: $d$ goes up or down by 1 with probability $\tfrac12$, and you stop at $d=0$ or $d=n$ (going all the way around). That's the walk-between-walls example again, so</p>
+$$h_d=d\,(n-d).$$
+<p>Instead of $n$ unknowns you reuse a solved problem.</p>
+
+<h3>Stationary-distribution shortcut for hitting times</h3>
+<p>On a graph where <strong>every node and every edge look the same</strong> (cycles, complete graphs, hypercubes), the expected hitting time between <em>adjacent</em> vertices is</p>
+<div class="callout key">$$h_{\text{adjacent}}=n-1.$$</div>
+<details open><summary>Why (two ways to count the return time)</summary>
+  <ol>
+    <li>The graph is regular, so $\pi$ is uniform: $\pi_v=1/n$, and the expected return time to $v$ is $1/\pi_v=n$.</li>
+    <li>From $v$, the walk takes 1 step to a random neighbor $u$, then needs $h(u\to v)$ more steps to come back:
+      $$\E[\text{return to }v]=1+\frac1d\sum_{u\sim v}h(u\to v).$$
+      By symmetry all $d$ neighbors have the same $h(u\to v)=h$, so this is $1+h$.</li>
+  </ol>
+  <p>Setting $n=1+h$ gives $h=n-1$.</p>
+</details>
+<div class="callout warn">
+  <p>The shortcut needs real symmetry: the graph must be regular (so $\pi$ is uniform) <em>and</em> every edge must be equivalent (edge-/arc-transitive), so that all neighbors have the same hitting time. On a <strong>star</strong> it fails: from the center to a given leaf takes $2n-3$ steps on average, while from a leaf to the center takes 1. What does always hold, for any connected graph, is the averaged version:</p>
+  $$\frac1{\deg v}\sum_{u\sim v}h(u\to v)=\frac{2|E|}{\deg v}-1.$$
+</div>
+
+<div class="widget" id="w-cycle">
+  <div class="widget-title">Hitting an adjacent node: is it always n − 1?</div>
+  <div class="widget-desc">The token starts at the orange node and walks to a uniformly random neighbor each step until it hits the green target (an adjacent node). <b>▶ Animate</b> shows one walk; <b>Simulate 5,000</b> estimates the average. On the cycle and complete graph it matches $n-1$; on the star (start = center, target = a leaf) it does not.</div>
+  <div class="controls" id="cy-ctl"></div>
+  <div class="twocol"><div class="chart" id="cy-graph"></div><div class="chart" id="cy-hist"></div></div>
+  <div class="readout" id="cy-read"></div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <div class="q">A random walk on a 12-hour clock face starts at 12 and moves one hour clockwise or counter-clockwise with equal probability. What is the expected number of steps to reach 6?</div>
+  <ul><li>11</li><li>12</li><li>24</li><li>36</li></ul>
+  <div class="explain">By symmetry only the distance matters, and 6 is at distance $d=6$ on a cycle of $n=12$. So $h_d=d(n-d)=6\cdot 6=36$.</div>
+</div>
+
+<h2>Cheat sheet</h2>
+<table>
+  <tr><th>Question</th><th>Tool</th></tr>
+  <tr><td>Distribution after $t$ steps</td><td>$\pi_t=\pi_0P^t$</td></tr>
+  <tr><td>Long-run fraction of time in $i$</td><td>solve $\pi=\pi P,\ \sum\pi_i=1$ (or $\deg(i)/2|E|$ for graph walks)</td></tr>
+  <tr><td>Expected return time to $i$</td><td>$1/\pi_i$</td></tr>
+  <tr><td>Expected time to absorption</td><td>$h_i=1+\sum_jP_{ij}h_j$, $h_A=0$</td></tr>
+  <tr><td>Probability of absorbing at $A$</td><td>$q_i=\sum_jP_{ij}q_j$, $q_A=1$, $q_B=0$</td></tr>
+  <tr><td>Symmetric walk on $0..N$</td><td>$h_i=i(N-i)$, $q_i=i/N$</td></tr>
+  <tr><td>Adjacent hitting time on a symmetric graph</td><td>$n-1$</td></tr>
+</table>
+
+</div></main>
+<script src="assets/nav.js"></script>
+<script src="assets/markov.js"></script>
+</body>
+</html>

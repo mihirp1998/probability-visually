@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Math toolkit · Probability, visually</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="assets/lib.js"></script>
+  <style>
+    .poly { overflow-x: auto; min-height: 2.6em; font-size: .95em; }
+  </style>
+</head>
+<body data-page="calculus">
+<main><div class="content">
+
+<h1>∫ Math toolkit</h1>
+<p class="lede">The calculus and algebra facts that keep showing up inside probability answers: Taylor approximations, derivatives for MLE, and a handful of sums, limits and constants worth knowing by heart.</p>
+
+<h2 id="taylor-series">Taylor series</h2>
+<p>A <strong>Taylor series</strong> approximates a function by a polynomial, using only information about the function (its value and derivatives) at a <em>single point</em> $a$:</p>
+<div class="callout key">$$f(x)=\sum_{n=0}^\infty\frac{f^{(n)}(a)}{n!}(x-a)^n=f(a)+f'(a)(x-a)+\frac{f''(a)}{2!}(x-a)^2+\cdots$$</div>
+<p>A series around $a=0$ is called a <strong>Maclaurin series</strong>.</p>
+
+<div class="callout intuition">
+  <p>Each term matches one more derivative. Suppose we want to approximate $f$ near $x=0$:</p>
+  <ul>
+    <li><strong>0th order</strong> $f(x)\approx f(0)$: a horizontal line at the right height.</li>
+    <li><strong>1st order</strong> $f(x)\approx f(0)+f'(0)\,x$: the tangent line, matching value <em>and slope</em>.</li>
+    <li><strong>2nd order</strong> $f(x)\approx f(0)+f'(0)\,x+\frac{f''(0)}{2}x^2$: a parabola that also matches the <em>curvature</em>.</li>
+  </ul>
+  <p>Each new term adds one more derivative of information, so the polynomial hugs the function more tightly near the expansion point. The $n!$ is there because differentiating $x^n$ $n$ times gives $n!$, and we want the $n$-th derivative of the polynomial to equal $f^{(n)}(a)$.</p>
+</div>
+
+<p>The most important example, $e^x$ around $0$ (every derivative of $e^x$ is $e^x$, and $e^0=1$):</p>
+$$e^x=1+x+\frac{x^2}{2!}+\frac{x^3}{3!}+\cdots=\sum_{n=0}^\infty\frac{x^n}{n!}.$$
+<p>It has an <strong>infinite radius of convergence</strong>: for any $x$, adding enough terms gets arbitrarily close to $e^x$.</p>
+
+<div class="widget" id="w-taylor">
+  <div class="widget-title">Taylor polynomial explorer</div>
+  <div class="widget-desc">The blue curve is $f$ and the orange curve is the Taylor polynomial of the chosen order around $a$ (the dot). Raise the order and watch the polynomial hug $f$ over a wider range. For $\log(1+x)$ and $\frac1{1-x}$ the green band is the interval of convergence: outside it, more terms make things <em>worse</em>.</div>
+  <div class="controls" id="ty-ctl"></div>
+  <div class="controls" id="ty-a"></div>
+  <div class="chart" id="ty-chart"></div>
+  <div class="poly" id="ty-poly"></div>
+  <div class="readout" id="ty-read"></div>
+</div>
+
+<div class="callout warn">
+  <p><strong>Not every Taylor series converges everywhere.</strong> The series for $\log(1+x)$ and $\frac1{1-x}$ only converge for $|x|\lt 1$ (around $a=0$). The radius of convergence is the distance from $a$ to the nearest point where the function "breaks" (here $x=-1$ and $x=1$). Within that radius more terms help; outside it the polynomial blows up no matter how many terms you add.</p>
+</div>
+
+<h3>Series to know</h3>
+<table>
+  <tr><th>Function</th><th>Series around 0</th><th>Valid for</th></tr>
+  <tr><td>$e^x$</td><td>$1+x+\frac{x^2}{2!}+\frac{x^3}{3!}+\cdots$</td><td>all $x$</td></tr>
+  <tr><td>$\sin x$</td><td>$x-\frac{x^3}{3!}+\frac{x^5}{5!}-\cdots$</td><td>all $x$</td></tr>
+  <tr><td>$\cos x$</td><td>$1-\frac{x^2}{2!}+\frac{x^4}{4!}-\cdots$</td><td>all $x$</td></tr>
+  <tr><td>$\log(1+x)$</td><td>$x-\frac{x^2}{2}+\frac{x^3}{3}-\cdots$</td><td>$-1\lt x\le 1$</td></tr>
+  <tr><td>$\frac1{1-x}$</td><td>$1+x+x^2+x^3+\cdots$</td><td>$|x|\lt 1$</td></tr>
+  <tr><td>$(1+x)^\alpha$</td><td>$1+\alpha x+\frac{\alpha(\alpha-1)}{2}x^2+\cdots$</td><td>$|x|\lt 1$</td></tr>
+</table>
+
+<div class="callout tip">
+  <p><strong>First-order approximations do most of the work in interviews.</strong> For small $x$:</p>
+  $$\log(1+x)\approx x,\qquad e^{x}\approx 1+x,\qquad (1-p)^n=e^{n\log(1-p)}\approx e^{-np}.$$
+  <p>The last one is everywhere: the chance of no success in $n$ rare trials is about $e^{-np}$ (that's the Poisson limit). In the birthday problem, $\prod_{k=1}^{n-1}\big(1-\tfrac kd\big)\approx e^{-\sum k/d}= e^{-n(n-1)/2d}$, which gives $n\approx 23$ for $d=365$ (see <a href="puzzles.html">puzzles</a>).</p>
+</div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">Each of 1000 independent servers fails today with probability 0.001. Approximately what's the chance that at least one fails?</div>
+  <ul><li>$0.1\%$</li><li>$1-e^{-1}\approx 63\%$</li><li>$100\%$</li><li>$e^{-1}\approx 37\%$</li></ul>
+  <div class="explain">$P(\text{none})=(1-0.001)^{1000}\approx e^{-1000\cdot 0.001}=e^{-1}$, so $P(\text{at least one})\approx 1-e^{-1}\approx 0.632$. A common trap is adding the probabilities to get $100\%$.</div>
+</div>
+
+<h2 id="derivative-rules">Derivative rules</h2>
+<p>Memorize these five:</p>
+<div class="facts">
+  <div class="fact"><div class="label">Power</div><div class="val">$\dfrac{d}{dx}x^n=nx^{n-1}$</div></div>
+  <div class="fact"><div class="label">Exponential</div><div class="val">$\dfrac{d}{dx}e^x=e^x$</div></div>
+  <div class="fact"><div class="label">Log</div><div class="val">$\dfrac{d}{dx}\log x=\dfrac1x$</div></div>
+  <div class="fact"><div class="label">Sine</div><div class="val">$\dfrac{d}{dx}\sin x=\cos x$</div></div>
+  <div class="fact"><div class="label">Cosine</div><div class="val">$\dfrac{d}{dx}\cos x=-\sin x$</div></div>
+</div>
+<p class="small muted">In probability and ML, $\log$ means the natural log $\ln$ unless stated otherwise.</p>
+<p>And the three composition rules:</p>
+$$\begin{aligned}
+\frac{d}{dx}f(g(x))&=f'(g(x))\cdot g'(x) &&\text{chain rule}\\
+\frac{d}{dx}f(x)g(x)&=f'(x)g(x)+f(x)g'(x) &&\text{product rule}\\
+\frac{d}{dx}\frac{f(x)}{g(x)}&=\frac{f'(x)g(x)-f(x)g'(x)}{g(x)^2} &&\text{quotient rule}
+\end{aligned}$$
+
+<div class="widget" id="w-tangent">
+  <div class="widget-title">The derivative is the limit of secant slopes</div>
+  <div class="widget-desc">The orange secant line passes through $(x_0,f(x_0))$ and $(x_0+h,f(x_0+h))$. Shrink $h$ and the secant rotates onto the green tangent line, whose slope is $f'(x_0)$.</div>
+  <div class="controls" id="tg-ctl"></div>
+  <div class="chart" id="tg-chart"></div>
+  <div class="readout" id="tg-read"></div>
+</div>
+
+<h3>Worked examples you'll actually need</h3>
+<ul>
+  <li><strong>Chain rule (Gaussian):</strong> $\dfrac{d}{dx}e^{-x^2/2}=e^{-x^2/2}\cdot(-x)=-x\,e^{-x^2/2}$.</li>
+  <li><strong>Product rule:</strong> $\dfrac{d}{dx}\,x e^{-x}=e^{-x}-xe^{-x}=(1-x)e^{-x}$, which is zero at $x=1$.</li>
+  <li><strong>Log-likelihood (<a href="statistics.html#maximum-likelihood-estimation">MLE</a>):</strong> $\dfrac{d}{dp}\big[k\log p+(n-k)\log(1-p)\big]=\dfrac kp-\dfrac{n-k}{1-p}$. The $-1$ in the second term comes from the chain rule on $\log(1-p)$.</li>
+  <li><strong>Quotient rule:</strong> $\dfrac{d}{dx}\dfrac{x}{1+x}=\dfrac{(1+x)-x}{(1+x)^2}=\dfrac1{(1+x)^2}$.</li>
+</ul>
+
+<h3>Integration by parts</h3>
+<p>Integrate the product rule $(uv)'=u'v+uv'$ and rearrange:</p>
+<div class="callout key">$$\int_a^b u\,dv=\big[uv\big]_a^b-\int_a^b v\,du$$</div>
+<p>Use it when the integrand is "polynomial × something easy to integrate". Choose $u$ = the polynomial (it gets simpler when differentiated).</p>
+<p><strong>Example: mean of $\Exp(\lambda)$.</strong> With $u=x$, $dv=\lambda e^{-\lambda x}dx$, so $v=-e^{-\lambda x}$:</p>
+$$\E[X]=\int_0^\infty x\,\lambda e^{-\lambda x}\,dx=\Big[-xe^{-\lambda x}\Big]_0^\infty+\int_0^\infty e^{-\lambda x}\,dx=0+\frac1\lambda.$$
+<p class="small">The same trick proves the tail-sum formula $\E[X]=\int_0^\infty P(X>x)\,dx$ for $X\ge 0$ (see <a href="expectation.html">expectation</a>).</p>
+
+<h2 id="handy-equations">Handy equations</h2>
+
+<h3>Harmonic numbers</h3>
+$$H_n=\sum_{k=1}^n\frac1k=1+\frac12+\frac13+\cdots+\frac1n\;\approx\;\ln n+\gamma$$
+<p>where $\gamma\approx 0.5772$ is the <strong>Euler–Mascheroni constant</strong>.</p>
+<div class="callout fix"><p>The original said $H_n\approx\log n$. That's right to leading order, but the gap $H_n-\ln n$ does not go to 0: it converges to $\gamma\approx0.577$. Use $H_n\approx\ln n+\gamma$ for numerical answers (e.g. for $n=100$: $\ln 100=4.61$ vs the true $H_{100}=5.19$).</p></div>
+<details><summary>Why $\ln n$? (compare the sum with an integral)</summary>
+  <p>$\frac1k$ is the area of a width-1 bar of height $\frac1k$. These bars sit above the curve $y=\frac1x$ on $[k,k+1]$, and (shifted one step) below it on $[k-1,k]$:</p>
+  $$\ln(n+1)=\int_1^{n+1}\frac{dx}x\;\le\;H_n\;\le\;1+\int_1^n\frac{dx}x=1+\ln n.$$
+  <p>So $H_n$ is squeezed within 1 of $\ln n$. The leftover slivers between bars and curve add up to $\gamma$.</p>
+</details>
+<p>Where it appears: the <strong>coupon collector</strong> needs $nH_n\approx n\ln n$ draws (see <a href="puzzles.html">puzzles</a>); the expected number of "record highs" in a random sequence of length $n$ is $H_n$; quicksort makes about $2n\ln n$ comparisons.</p>
+
+<div class="widget" id="w-harm">
+  <div class="widget-title">Hₙ vs ln n: the gap is γ</div>
+  <div class="widget-desc"><b>Left:</b> $H_n$ (blue) grows like $\ln n$ (orange) but stays a constant distance above it, tracking $\ln n+\gamma$ (dashed green). <b>Right:</b> the gap $H_n-\ln n$ falls from 1 toward $\gamma\approx0.5772$, roughly like $\gamma+\frac1{2n}$.</div>
+  <div class="controls" id="hm-ctl"></div>
+  <div class="twocol"><div class="chart" id="hm-a"></div><div class="chart" id="hm-b"></div></div>
+  <div class="readout" id="hm-read"></div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <div class="q">Roughly how many random draws (with replacement) do you need on average to collect all 50 distinct coupons?</div>
+  <ul><li>≈ 225</li><li>≈ 196</li><li>≈ 2,500</li><li>≈ 100</li></ul>
+  <div class="explain">$50\,H_{50}\approx 50(\ln 50+0.577)=50(3.91+0.58)\approx 225$. Using just $50\ln 50\approx 196$ undershoots by about $50\gamma\approx 29$.</div>
+</div>
+
+<h3>AM–GM inequality</h3>
+<p>For $x,y>0$, the <strong>geometric mean</strong> is at most the <strong>arithmetic mean</strong>:</p>
+$$\sqrt{xy}\;\le\;\frac{x+y}{2},\qquad\text{with equality iff } x=y.$$
+<div class="callout fix"><p>The original called $\sqrt{xy}$ the "log mean". It is the <strong>geometric mean</strong>, and this is the AM–GM inequality for two numbers. (The "logarithmic mean" is a different thing, $\frac{x-y}{\ln x-\ln y}$, which sits between the two.)</p></div>
+<details><summary>One-line proof</summary>
+  $$0\le(\sqrt x-\sqrt y)^2=x-2\sqrt{xy}+y\;\Longrightarrow\;\sqrt{xy}\le\frac{x+y}2.$$
+  <p>In general, $\sqrt[n]{x_1\cdots x_n}\le\frac{x_1+\dots+x_n}{n}$. It's Jensen's inequality for the concave $\log$: $\frac1n\sum\log x_i\le\log\big(\frac1n\sum x_i\big)$.</p>
+</details>
+<p class="small"><strong>Use:</strong> with a fixed sum, a product is maximized when the parts are equal. E.g. a rectangle with perimeter 4 has the largest area when it's a $1\times1$ square; $p(1-p)$ is largest at $p=\tfrac12$.</p>
+
+<h3>Identities for e</h3>
+$$e=\lim_{n\to\infty}\Big(1+\frac1n\Big)^n,\qquad \frac1e=\lim_{n\to\infty}\Big(1-\frac1n\Big)^n,\qquad e^x=\lim_{n\to\infty}\Big(1+\frac xn\Big)^n.$$
+<p>The second comes from replacing $n$ with $-n$ in the first, and the third from replacing $n$ with $n/x$. The <strong>exponential series</strong> gives a second route to the same numbers:</p>
+$$e=\sum_{k=0}^\infty\frac1{k!},\qquad e^x=\sum_{n=0}^\infty\frac{x^n}{n!},\qquad e^{-1}=1-\frac1{1!}+\frac1{2!}-\frac1{3!}+\cdots$$
+<div class="callout intuition">
+  <p>$(1+\frac1n)^n$ is compound interest: 100% annual interest compounded $n$ times a year. Compounding continuously gives $e\approx2.718$. $(1-\frac1n)^n\to\frac1e$ is the probability that a specific person is <em>never</em> picked in $n$ draws from $n$ people. The alternating series for $e^{-1}$ is exactly the inclusion–exclusion formula for the probability that a random permutation has <strong>no fixed points</strong> (derangements, see <a href="combinatorics.html">combinatorics</a>).</p>
+</div>
+
+<div class="widget" id="w-elim">
+  <div class="widget-title">Two roads to eˣ</div>
+  <div class="widget-desc">Blue dots: the limit form $(1+x/n)^n$. Green dots: partial sums $\sum_{k=0}^{n} x^k/k!$ of the series. Both converge to $e^x$ (dashed), but the series is <em>much</em> faster: the limit form has error about $e^x x^2/(2n)$, while the series error shrinks like $x^{n+1}/(n+1)!$. Set $x=-1$ to see $(1-1/n)^n\to1/e$.</div>
+  <div class="controls" id="el-ctl"></div>
+  <div class="chart" id="el-chart"></div>
+  <div class="readout" id="el-read"></div>
+</div>
+
+<h3>Sums worth memorizing</h3>
+<div class="facts" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))">
+  <div class="fact"><div class="label">Integers</div><div class="val">$\displaystyle\sum_{k=1}^n k=\frac{n(n+1)}2$</div></div>
+  <div class="fact"><div class="label">Squares</div><div class="val">$\displaystyle\sum_{k=1}^n k^2=\frac{n(n+1)(2n+1)}6$</div></div>
+  <div class="fact"><div class="label">Geometric</div><div class="val">$\displaystyle\sum_{k=0}^{\infty} r^k=\frac1{1-r}$<br><span class="small muted">finite: $\sum_{k=0}^{n-1}r^k=\frac{1-r^n}{1-r}$</span></div></div>
+  <div class="fact"><div class="label">Differentiated geometric</div><div class="val">$\displaystyle\sum_{k=1}^{\infty} k\,r^{k-1}=\frac1{(1-r)^2}$</div></div>
+</div>
+<p class="small">The geometric sums need $|r|\lt 1$ for the infinite versions.</p>
+<details><summary>Proofs</summary>
+  <p><strong>Gauss's pairing:</strong> write $1+2+\dots+n$ forwards and backwards; each of the $n$ column pairs sums to $n+1$, so twice the sum is $n(n+1)$.</p>
+  <p><strong>Squares:</strong> by induction: adding $(n+1)^2$ to $\frac{n(n+1)(2n+1)}{6}$ gives $\frac{(n+1)(n+2)(2n+3)}{6}$.</p>
+  <p><strong>Geometric:</strong> $S=1+r+r^2+\cdots$ and $rS=r+r^2+\cdots$, so $S-rS=1$.</p>
+  <p><strong>Differentiated:</strong> differentiate both sides of $\sum_{k\ge0}r^k=\frac1{1-r}$ with respect to $r$: $\sum_{k\ge1}kr^{k-1}=\frac1{(1-r)^2}$.</p>
+</details>
+<div class="callout tip"><p><strong>Where the last one shows up:</strong> the mean of a geometric distribution:</p>
+  $$\E[X]=\sum_{k\ge1}k(1-p)^{k-1}p=p\cdot\frac{1}{(1-(1-p))^2}=\frac1p.$$
+  <p>Any time you see "$k$ times a geometric term", differentiate a geometric series.</p></div>
+
+<h3>Stirling's approximation</h3>
+<div class="callout key">$$n!\approx\sqrt{2\pi n}\,\Big(\frac ne\Big)^n$$</div>
+<p>It is shockingly accurate even for small $n$: $5!=120$ vs $118.0$ (1.7% low), $10!=3{,}628{,}800$ vs $3{,}598{,}696$ (0.8% low). The relative error is about $\frac1{12n}$. For orders of magnitude, $\ln n!\approx n\ln n-n$.</p>
+<p><strong>Interview use:</strong> the central binomial coefficient $\binom{2n}{n}\approx\frac{4^n}{\sqrt{\pi n}}$. So a fair <a href="puzzles.html#random-walk">random walk</a> is back at 0 after $2n$ steps with probability $\binom{2n}n/4^n\approx\frac1{\sqrt{\pi n}}$, and the chance of exactly 50 heads in 100 flips is about $1/\sqrt{50\pi}\approx 8\%$.</p>
+
+<h3>Gaussian integral</h3>
+<div class="callout key">$$\int_{-\infty}^{\infty}e^{-x^2/2}\,dx=\sqrt{2\pi}$$<p class="small" style="text-align:center">equivalently, $\int_{-\infty}^{\infty}e^{-x^2}\,dx=\sqrt{\pi}$</p></div>
+<p>This is why the standard normal density is $\frac1{\sqrt{2\pi}}e^{-x^2/2}$: the $\frac1{\sqrt{2\pi}}$ makes it integrate to 1 (see <a href="distributions.html#gaussian">Gaussian</a>).</p>
+<details><summary>Proof (square it and switch to polar coordinates)</summary>
+  <p>Let $I=\int e^{-x^2/2}dx$. Then</p>
+  $$I^2=\int\!\!\int e^{-(x^2+y^2)/2}\,dx\,dy=\int_0^{2\pi}\!\!\int_0^\infty e^{-r^2/2}\,r\,dr\,d\theta=2\pi\Big[-e^{-r^2/2}\Big]_0^\infty=2\pi.$$
+  <p>The extra $r$ from $dx\,dy=r\,dr\,d\theta$ is what makes the integral doable (substitute $u=r^2/2$). So $I=\sqrt{2\pi}$.</p>
+</details>
+
+</div></main>
+<script src="assets/nav.js"></script>
+<script src="assets/calculus.js"></script>
+</body>
+</html>

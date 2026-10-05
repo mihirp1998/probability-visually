@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Combinatorics · Probability, visually</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="assets/lib.js"></script>
+  <style>
+    .grid4 { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; margin: 8px 0 12px; font-size: .92em; }
+    .grid4 .hd { color: var(--muted); font-weight: 600; font-size: .9em; align-self: end; padding: 0 4px; }
+    .grid4 .rh { color: var(--muted); font-weight: 600; font-size: .9em; align-self: center; padding-right: 6px; }
+    .cell4 { border: 1.5px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--bg); cursor: pointer; text-align: left; font: inherit; color: var(--ink); }
+    .cell4:hover { border-color: var(--accent); }
+    .cell4.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent) inset; }
+    .cell4 .nm { font-size: .8em; color: var(--muted); }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; max-height: 260px; overflow-y: auto; padding: 4px 0; }
+    .chip { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; padding: 2px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--ink); border: 1px solid var(--line); }
+    .chip.more { background: transparent; color: var(--muted); }
+    .ctl input[type=text] { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: .95em; width: 11em; text-transform: uppercase; }
+    .bigformula { overflow-x: auto; margin: 6px 0; }
+    .sb-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 10px 0 6px; min-height: 44px; }
+    .sb { width: 30px; height: 40px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--bg); font-size: 20px; line-height: 36px; text-align: center; cursor: pointer; padding: 0; font-family: inherit; }
+    .sb.bar { width: 16px; background: var(--ink); border-color: var(--ink); color: transparent; }
+    .sb.bar.sel { background: var(--c2); border-color: var(--c2); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .sb.star:hover, .sb.bar:hover { border-color: var(--accent); }
+    .sb-vals { font-size: 1.05em; margin: 4px 0; }
+    svg.diagram { width: 100%; height: auto; display: block; }
+    svg.diagram text { font-family: inherit; }
+    .ie-terms { display: flex; flex-direction: column; gap: 4px; font-size: .92em; }
+    .ie-term { display: flex; justify-content: space-between; gap: 8px; border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; background: var(--bg); cursor: pointer; }
+    .ie-term.applied { background: var(--accent-soft); }
+    .ie-term.hover { border-color: var(--c2); }
+    .ie-term .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .lattice-pt { cursor: pointer; }
+    .twocol > * { min-width: 0; }
+  </style>
+</head>
+<body data-page="combinatorics">
+<main><div class="content">
+
+<h1>🔢 Combinatorics</h1>
+<p class="lede">Probability on a finite, equally likely space is just counting: $P(A)=\frac{|A|}{|\Omega|}$. This page builds the counting toolkit from two questions, <strong>does order matter?</strong> and <strong>can I reuse items?</strong>, then adds three power tools: stars and bars, inclusion–exclusion, and lattice paths.</p>
+
+<!-- ===================================================== PERMUTATIONS / COMBINATIONS -->
+<h2 id="permutations-combinations">Permutations &amp; combinations</h2>
+
+<h3 id="permutations">Permutations: order matters</h3>
+<p>Arrange $k$ of $n$ distinct items in a row. There are $n$ choices for the first slot, $n-1$ for the second, …, and $n-k+1$ for the $k$-th:</p>
+$$P(n,k)=n(n-1)\cdots(n-k+1)=\frac{n!}{(n-k)!}$$
+<p>With $k=n$ this is $n!$, the number of orderings of all $n$ items.</p>
+
+<h3 id="combinations">Combinations: order doesn't matter</h3>
+<p>Choose a <em>set</em> of $k$ items from $n$ (a committee, a poker hand):</p>
+$$\binom nk=\frac{n!}{k!\,(n-k)!}=\frac{P(n,k)}{k!}$$
+
+<div class="callout intuition">
+  <p>Every set of $k$ items can be lined up in $k!$ orders. Counting ordered arrangements counts each set exactly $k!$ times, so divide by $k!$ to collapse the orderings into one. For example, $\{A,B,C\}$ appears as ABC, ACB, BAC, BCA, CAB, CBA, which is $3!=6$ times.</p>
+</div>
+
+<details><summary>Handy identities (and why they're true)</summary>
+  <ul>
+    <li>$\binom nk=\binom n{n-k}$: choosing who's <em>in</em> is the same as choosing who's <em>out</em>.</li>
+    <li>$\binom nk=\binom{n-1}{k-1}+\binom{n-1}{k}$ (Pascal): either item $n$ is chosen or it isn't.</li>
+    <li>$\sum_k\binom nk=2^n$: each item is in or out.</li>
+    <li>$\sum_k\binom mk\binom{n}{r-k}=\binom{m+n}{r}$ (Vandermonde): choose $r$ people from $m$ men and $n$ women by splitting on the number of men.</li>
+  </ul>
+</details>
+
+<h3 id="the-four-ways">The four ways to pick $k$ from $n$</h3>
+<p>Almost every counting question is one cell of this table. Decide (1) whether the order of your picks matters and (2) whether an item can be picked more than once.</p>
+<table>
+  <tr><th></th><th>without replacement</th><th>with replacement</th></tr>
+  <tr><th>order matters</th><td>$P(n,k)=\dfrac{n!}{(n-k)!}$<br><span class="small muted">podium finishes, passwords with distinct characters</span></td><td>$n^k$<br><span class="small muted">PIN codes, sequences of die rolls</span></td></tr>
+  <tr><th>order doesn't matter</th><td>$\dbinom nk$<br><span class="small muted">committees, poker hands</span></td><td>$\dbinom{n+k-1}{k}$<br><span class="small muted">buying $k$ donuts from $n$ flavors (<a href="#stars-and-bars">stars &amp; bars</a>)</span></td></tr>
+</table>
+
+<div class="widget" id="w-four">
+  <div class="widget-title">Enumerate the four cases</div>
+  <div class="widget-desc">Pick a cell and choose $n$ (letters A, B, C, …) and $k$ (the number of picks). Every outcome is listed and counted. In the unordered cases, hover a chip to see how many ordered sequences collapse into it. That number is <em>not</em> always $k!$ when repeats are allowed: chips with a repeated letter (orange border) come from fewer orderings.</div>
+  <div class="grid4" id="fw-grid"></div>
+  <div class="controls" id="fw-ctl"></div>
+  <div class="bigformula" id="fw-formula"></div>
+  <div class="chips" id="fw-list"></div>
+</div>
+
+<div class="callout warn">
+  <p><strong>"With replacement, order doesn't matter" is not $n^k/k!$.</strong> Dividing by $k!$ assumes every unordered outcome came from exactly $k!$ sequences. But $\{A,A\}$ comes from only one sequence (AA), while $\{A,B\}$ comes from two (AB, BA). For $n=k=2$, $n^k/k!=2$, but the true count is $\binom{3}{2}=3$: $\{A,A\},\{A,B\},\{B,B\}$. Use stars and bars.</p>
+</div>
+
+<div class="quiz" data-answer="2">
+  <div class="q">A 4-digit PIN uses digits 0–9. How many PINs have all four digits distinct?</div>
+  <ul><li>$\binom{10}{4}=210$</li><li>$10^4=10{,}000$</li><li>$10\cdot9\cdot8\cdot7=5{,}040$</li><li>$\binom{13}{4}=715$</li></ul>
+  <div class="explain">Order matters (1234 ≠ 4321) and there is no replacement (distinct digits): $P(10,4)=5040$. The probability that a uniformly random PIN has distinct digits is $5040/10^4\approx 50\%$.</div>
+</div>
+
+<h3 id="multinomial">Arrangements with repeated items (multinomial)</h3>
+<p>How many ways are there to arrange $n$ objects when there are $n_1$ identical objects of type 1, $n_2$ of type 2, …, $n_m$ of type $m$?</p>
+$$\binom{n}{n_1,\dots,n_m}=\frac{n!}{n_1!\,n_2!\cdots n_m!}$$
+<div class="callout intuition">
+  <p>Pretend all objects are distinct and permute them: $n!$ ways. Swapping identical copies doesn't change the visible arrangement, so each visible arrangement was counted $n_1!\,n_2!\cdots n_m!$ times. Divide those rearrangements out.</p>
+</div>
+<details><summary>Second view: choose positions type by type</summary>
+  <p>Choose positions for type 1, then for type 2 among the rest, and so on:</p>
+  $$\binom{n}{n_1}\binom{n-n_1}{n_2}\cdots\binom{n_m}{n_m}=\frac{n!}{n_1!(n-n_1)!}\cdot\frac{(n-n_1)!}{n_2!(n-n_1-n_2)!}\cdots=\frac{n!}{n_1!\cdots n_m!}.$$
+  <p>With two types this is just $\binom n{n_1}$. For example, arranging $k$ H's and $n-k$ T's gives $\binom nk$ sequences, which is where the binomial PMF comes from.</p>
+</details>
+
+<div class="widget" id="w-multi">
+  <div class="widget-title">Count the arrangements of a word</div>
+  <div class="widget-desc">Type any word. The count is $n!$ divided by the factorial of each letter's multiplicity, computed exactly. For short words, all distinct arrangements are listed.</div>
+  <div class="controls" id="mu-ctl"></div>
+  <div class="bigformula" id="mu-formula"></div>
+  <div class="bigformula" id="mu-chain"></div>
+  <div class="chips" id="mu-list"></div>
+</div>
+
+<!-- ===================================================== STARS AND BARS -->
+<h2 id="stars-and-bars">Stars and bars</h2>
+<p><strong>Question:</strong> how many ways can you write $n$ as an ordered sum of $k$ non-negative integers, $x_1+x_2+\dots+x_k=n$ with each $x_i\ge0$?</p>
+<p>Line up $n$ stars and drop $k-1$ bars among them. The bars cut the stars into $k$ groups, and the group sizes are $x_1,\dots,x_k$. For example, with $n=5$ and $k=3$:</p>
+$$\star\star\,|\,\,|\,\star\star\star \;\longleftrightarrow\; (2,0,3) \qquad\qquad |\,\star\star\star\star\,|\,\star \;\longleftrightarrow\; (0,4,1)$$
+<p>Every arrangement of $n$ stars and $k-1$ bars gives exactly one solution and vice versa. So count arrangements: there are $n+k-1$ symbols, and we choose which $k-1$ of them are bars:</p>
+<div class="callout key">
+  $$\#\{x_1+\dots+x_k=n,\ x_i\ge0\}=\binom{n+k-1}{k-1}=\binom{n+k-1}{n}$$
+</div>
+
+<div class="widget" id="w-sb">
+  <div class="widget-title">Stars ↔ solutions</div>
+  <div class="widget-desc">Click a bar to select it (orange), then click a star to move the bar there. Stars are colored by the group they fall in, and the solution $(x_1,\dots,x_k)$ updates live. <b>Next ▶</b> walks through every arrangement in order, so you can see that the list of arrangements and the list of solutions match one-to-one.</div>
+  <div class="controls" id="sb-ctl"></div>
+  <div class="sb-row" id="sb-row"></div>
+  <div class="sb-vals" id="sb-vals"></div>
+  <div class="readout" id="sb-read"></div>
+</div>
+
+<h3 id="combination-with-replacement">Combination with replacement = stars and bars</h3>
+<p>Choosing $k$ items from $n$ types <em>with replacement, order irrelevant</em> is the same problem. Let $x_i$ be how many of type $i$ you take, so $x_1+\dots+x_n=k$. That gives $k$ stars and $n-1$ bars:</p>
+$$\binom{n+k-1}{k}$$
+<p class="small muted">Example: 3 donuts from 4 flavors gives $\binom{6}{3}=20$ boxes. Note the roles swap: in "sum of $k$ integers to $n$", $n$ is the number of stars, while in "choose $k$ from $n$ types", $k$ is.</p>
+
+<div class="callout tip">
+  <p><strong>Positive parts.</strong> If every $x_i\ge1$, give each group one star up front and distribute the remaining $n-k$ freely: $\binom{n-1}{k-1}$. (Equivalently, place $k-1$ bars into the $n-1$ gaps between stars, at most one per gap.) More generally, lower bounds $x_i\ge a_i$ are handled by subtracting the $a_i$ first. Upper bounds $x_i\le b_i$ need <a href="#inclusion-exclusion">inclusion–exclusion</a>.</p>
+</div>
+
+<div class="quiz" data-answer="1">
+  <div class="q">How many non-negative integer solutions does $x_1+x_2+x_3=10$ have?</div>
+  <ul><li>$\binom{10}{3}=120$</li><li>$\binom{12}{2}=66$</li><li>$\binom{9}{2}=36$</li><li>$3^{10}$</li></ul>
+  <div class="explain">There are $n=10$ stars and $k-1=2$ bars, so $\binom{12}{2}=66$. ($\binom92=36$ is the count with every $x_i\ge1$.)</div>
+</div>
+
+<!-- ===================================================== INCLUSION-EXCLUSION -->
+<h2 id="inclusion-exclusion">Inclusion–exclusion</h2>
+<div class="callout intuition">
+  <p>To count a union, add the pieces. But elements in two sets got counted twice, so subtract the pairwise overlaps. Now elements in all three sets were added 3 times and subtracted 3 times, so add the triple overlap back. Keep alternating until every element is counted exactly once.</p>
+</div>
+$$P(A\cup B)=P(A)+P(B)-P(A\cap B)$$
+$$P(A\cup B\cup C)=P(A)+P(B)+P(C)-P(A\cap B)-P(A\cap C)-P(B\cap C)+P(A\cap B\cap C)$$
+<p>The same formula holds for counts:</p>
+$$|A\cup B\cup C|=|A|+|B|+|C|-|A\cap B|-|A\cap C|-|B\cap C|+|A\cap B\cap C|$$
+
+<div class="widget" id="w-ie">
+  <div class="widget-title">Watch the overcount cancel</div>
+  <div class="widget-desc">Each region shows its number of elements and, in the badge, <b>how many times it has been counted so far</b>. Apply the terms one at a time with <b>Next term</b>. Hover a term to see its region. Pink badges are overcounted, gray are undercounted, and green are counted exactly once. After all 7 terms, every region is green and the running total equals $|A\cup B\cup C|$.</div>
+  <div class="controls" id="ie-ctl"></div>
+  <div class="twocol">
+    <div class="chart" id="ie-venn"></div>
+    <div class="ie-terms" id="ie-terms"></div>
+  </div>
+  <div class="readout" id="ie-read"></div>
+</div>
+
+<details><summary>Why the general formula counts each element exactly once</summary>
+  <p>General form: $\big|\bigcup_{i=1}^n A_i\big|=\sum_{\emptyset\neq S\subseteq[n]}(-1)^{|S|+1}\big|\bigcap_{i\in S}A_i\big|$.</p>
+  <p>Take an element that lies in exactly $r\ge1$ of the sets. It appears in $\binom rj$ of the $j$-fold intersections, so its total count is</p>
+  $$\binom r1-\binom r2+\binom r3-\dots=1-(1-1)^r=1.$$
+  <p>Elements in none of the sets are never counted. ∎</p>
+</details>
+
+<div class="callout tip">
+  <p><strong>Worked example.</strong> How many integers in $1..100$ are divisible by 2, 3, or 5? $|A_2|=50,\ |A_3|=33,\ |A_5|=20$; $|A_6|=16,\ |A_{10}|=10,\ |A_{15}|=6$; $|A_{30}|=3$. So $50+33+20-16-10-6+3=74$. The trick: an intersection of "divisible by" sets is "divisible by the lcm".</p>
+</div>
+<div class="callout warn">
+  <p>The two common slips are forgetting the final triple term (giving 71 above) and using it for <em>disjoint</em> events, where it is overkill: just add. Also, if the question asks for "none of the properties", use the complement: $|\overline{A\cup B\cup C}|=|\Omega|-|A\cup B\cup C|$. That is how derangements are counted next.</p>
+</div>
+
+<div class="quiz" data-answer="0">
+  <div class="q">Two dice are rolled. Using inclusion–exclusion, what is $P(\text{at least one six})$?</div>
+  <ul><li>$\tfrac16+\tfrac16-\tfrac1{36}=\tfrac{11}{36}$</li><li>$\tfrac16+\tfrac16=\tfrac13$</li><li>$\tfrac1{36}$</li><li>$1-\tfrac16=\tfrac56$</li></ul>
+  <div class="explain">$P(A)+P(B)-P(A\cap B)=\tfrac{11}{36}$. Check via the complement: $1-(\tfrac56)^2=\tfrac{11}{36}$ ✓.</div>
+</div>
+
+<!-- ===================================================== DERANGEMENTS -->
+<h2 id="derangements">Derangements</h2>
+<p>A <strong>derangement</strong> is a permutation with <strong>no fixed points</strong>: nothing ends up in its original position. In the classic story, $n$ people check their hats, the hats are handed back at random, and nobody gets their own hat. Write $D_n$ for the number of derangements of $n$ items.</p>
+
+<div class="facts">
+  <div class="fact"><div class="label">Formula</div><div class="val">$D_n=n!\displaystyle\sum_{k=0}^n\frac{(-1)^k}{k!}$</div></div>
+  <div class="fact"><div class="label">Approximation</div><div class="val">$D_n\approx\dfrac{n!}{e}$ (exactly the nearest integer, $n\ge1$)</div></div>
+  <div class="fact"><div class="label">Recurrence</div><div class="val">$D_n=(n-1)(D_{n-1}+D_{n-2})$</div></div>
+</div>
+<p>So $P(\text{random permutation has no fixed point})=\frac{D_n}{n!}\to\frac1e\approx0.3679$, and it converges <em>very</em> fast. Already at $n=5$ it is $0.3667$. First values: $D_1..D_8 = 0, 1, 2, 9, 44, 265, 1854, 14833$, with $D_0=1$.</p>
+
+<details><summary>Proof of the formula via inclusion–exclusion</summary>
+  <p>Let $A_i$ be the set of permutations fixing $i$. Then $|A_{i_1}\cap\dots\cap A_{i_k}|=(n-k)!$, since the $k$ points are pinned and the rest are free. There are $\binom nk$ such intersections, so</p>
+  $$|A_1\cup\dots\cup A_n|=\sum_{k=1}^n(-1)^{k+1}\binom nk(n-k)!=\sum_{k=1}^n(-1)^{k+1}\frac{n!}{k!}.$$
+  $$D_n=n!-|A_1\cup\dots\cup A_n|=n!\sum_{k=0}^n\frac{(-1)^k}{k!}\;\xrightarrow{\;n\to\infty\;}\;\frac{n!}{e},$$
+  <p>because $\sum_k (-1)^k/k!$ is the Taylor series of $e^{-1}$. The tail after $k=n$ is smaller than $\frac1{(n+1)!}$, so $|D_n-n!/e|<\frac1{n+1}\le\frac12$. That is why rounding works.</p>
+</details>
+<details><summary>Proof of the recurrence $D_n=(n-1)(D_{n-1}+D_{n-2})$</summary>
+  <p>Where does item 1 go? It goes to some position $j\neq1$, and there are $n-1$ choices. Now look at item $j$:</p>
+  <ul>
+    <li><strong>Item $j$ goes to position 1 (a swap).</strong> Remove 1 and $j$. The other $n-2$ items must form a derangement: $D_{n-2}$.</li>
+    <li><strong>Item $j$ does not go to position 1.</strong> Then position 1 acts like a "forbidden spot" for $j$, playing the role of $j$'s own spot. The $n-1$ items other than 1 must avoid their (relabeled) spots: $D_{n-1}$.</li>
+  </ul>
+  <p>Total: $(n-1)(D_{n-1}+D_{n-2})$. Check: $D_4=3(2+1)=9$ ✓.</p>
+</details>
+
+<div class="widget" id="w-der">
+  <div class="widget-title">No fixed points → $1/e$</div>
+  <div class="widget-desc">Dots show the exact probability $D_n/n!$ that a random permutation of $n$ items has no fixed point. The dashed line is $1/e$. Pick an $n$ and simulate shuffles to check the probability empirically (orange).</div>
+  <div class="controls" id="dr-ctl"></div>
+  <div class="chart" id="dr-chart"></div>
+  <div class="readout" id="dr-read"></div>
+</div>
+
+<div class="callout intuition">
+  <p>Why $1/e$? Each item is a fixed point with probability $\frac1n$, and these events are only weakly dependent. If they were independent, $P(\text{none})=(1-\frac1n)^n\to e^{-1}$. In fact the number of fixed points is approximately $\Pois(1)$, with mean exactly 1 for every $n$ (see <a href="problems.html#counting-in-expectation">counting in expectation</a>).</p>
+</div>
+
+<!-- ===================================================== PATH COUNTING -->
+<h2 id="path-counting">Path counting</h2>
+<p><strong>Question:</strong> how many paths go from $(0,0)$ to $(m,n)$ on a grid if each step moves one unit right (R) or one unit up (U)?</p>
+<ul>
+  <li>Every path has exactly $m$ R-steps and $n$ U-steps, so $m+n$ steps in total.</li>
+  <li>A path is uniquely specified by choosing which of the $m+n$ steps are R's. For example, RRURU ↔ R's at steps $\{1,2,4\}$.</li>
+</ul>
+<div class="callout key">
+  $$\#\text{paths }(0,0)\to(m,n)=\binom{m+n}{m}$$
+  <p>Through a given point $(a,b)$, multiply the ways to get there by the ways to continue:</p>
+  $$\#\text{paths through }(a,b)=\binom{a+b}{a}\cdot\binom{(m-a)+(n-b)}{m-a}$$
+</div>
+
+<div class="widget" id="w-path">
+  <div class="widget-title">Lattice paths</div>
+  <div class="widget-desc">Drag the sliders to resize the grid. Click a lattice point to pin $(a,b)$, and the number of paths through it appears. <b>Random path</b> animates a uniformly random path (a random shuffle of the R's and U's). Run many to check that the fraction passing through $(a,b)$ matches the formula. Turn on <b>show counts</b> to see that each point's count is the sum of the counts to its left and below, which is Pascal's triangle tilted 45°.</div>
+  <div class="controls" id="pa-ctl"></div>
+  <div class="chart" id="pa-grid"></div>
+  <div class="readout" id="pa-read"></div>
+</div>
+
+<div class="callout tip">
+  <ul>
+    <li><strong>Avoiding a point:</strong> total minus through, $\binom{m+n}m-\binom{a+b}a\binom{m-a+n-b}{m-a}$. To avoid several points, use inclusion–exclusion over the forbidden points.</li>
+    <li><strong>Random path through a point:</strong> divide by the total. For the center of an $n\times n$ grid ($n$ even), $\binom{n}{n/2}^2/\binom{2n}{n}\approx\frac{2}{\sqrt{\pi n}}$, which shrinks only slowly.</li>
+    <li><strong>Never crossing the diagonal</strong> (from $(0,0)$ to $(n,n)$ staying on or below $y=x$) is the Catalan number $\frac1{n+1}\binom{2n}{n}$. This is the reflection trick from <a href="puzzles.html">random walks</a>.</li>
+  </ul>
+</div>
+
+<div class="quiz" data-answer="2">
+  <div class="q">On a grid from $(0,0)$ to $(4,4)$, a path is chosen uniformly at random. What's the probability it passes through $(2,2)$?</div>
+  <ul><li>$\tfrac14$</li><li>$\tfrac12$</li><li>$\tfrac{36}{70}$</li><li>$\tfrac{6}{70}$</li></ul>
+  <div class="explain">Total $\binom84=70$. Through $(2,2)$: $\binom42\cdot\binom42=36$. So $\tfrac{36}{70}\approx 51\%$. The center is a popular spot.</div>
+</div>
+
+</div></main>
+<script src="assets/nav.js"></script>
+<script src="assets/combinatorics.js"></script>
+</body>
+</html>
